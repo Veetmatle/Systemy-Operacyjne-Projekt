@@ -1,58 +1,80 @@
 #include "funkcje_header.h"
+#include <time.h>
 
-#define MAX_PASSENGERS 10
-#define BRIDGE_CAPACITY 5
-#define T1 10 // Czas do możliwego odpłynięcia przed czasem
-#define T2 20 // Czas trwania rejsu
+#define MAX_PASSENGERS 10 // Maksymalna liczba pasażerów na statku
+#define MAX_BRIDGE 5      // Maksymalna liczba osób na mostku
+#define T1 5              // Czas do odpłynięcia
+#define T2 10             // Czas rejsu
 
-int main() {
-    int message_queue_ID = initialize_message_queue(".", 'q', 0666 | IPC_CREAT);
-    int shared_memory_ID = initialize_shared_memory(".", 's', (MAX_PASSENGERS + 2) * sizeof(int), 0666 | IPC_CREAT);
-    int *shared_memory = (int *)attach_shared_memory(shared_memory_ID, NULL, 0);
+int main() 
+{
+    // Inicjalizacja pamięci współdzielonej
+    int shm_id = initialize_shared_memory(".", 'S', (MAX_PASSENGERS + 2) * sizeof(int), IPC_CREAT | 0666);
+    int *shared_memory = (int *)attach_shared_memory(shm_id, NULL, 0);
 
-    int semid = initialize_semaphores(ftok(".", 'm'), 2);
-    semaphore_signal(semid, 0, 0); // Semafor mostku
-    semaphore_signal(semid, 1, 0); // Semafor pasażerów
+    // Inicjalizacja semaforów
+    key_t sem_key = ftok(".", 'M');
+    int sem_id = initialize_semaphores(sem_key, 2);
+    
+    semctl(sem_id, 0, SETVAL, 1); // Semafor dla mostku (muteks)
+    semctl(sem_id, 1, SETVAL, 1); // Semafor dla statku (muteks)
 
-    struct message signal_msg, passenger_exit_msg;
+    // Inicjalizacja kolejek komunikatów
+    int msg_queue_id = initialize_message_queue(".", 'Q', IPC_CREAT | 0666);
 
-    while (1) {
-        // Oczekiwanie na sygnał od KapitanaPortu
-        printf("Kapitan Statku: Oczekiwanie na sygnał od KapitanaPortu...\n");
-        receive_message_from_queue(message_queue_ID, &signal_msg, 0, 0);
+    struct message signal_msg;
 
-        if (signal_msg.type == 2) {
-            printf("Kapitan Statku: Otrzymano sygnał 2. Rejs przerwany, pasażerowie opuszczają statek.\n");
-        } else if (signal_msg.type == 1) {
-            printf("Kapitan Statku: Rozpoczynam rejs.\n");
-            sleep(T1);
+    shared_memory[0] = 0; // Liczba osób na mostku
+    shared_memory[1] = 0; // Liczba osób na statku
+
+    printf("Kapitan Statku: Gotowy do pracy.\n");
+
+    while (1) 
+    {
+        // Odbieranie sygnałów od Kapitana Portu
+        receive_message_from_queue(msg_queue_id, &signal_msg, 1, 0);
+        
+        if (signal_msg.content == 1) {
+            // Sygnał 1: Odpłynięcie przed czasem
+            semaphore_wait(sem_id, 0, 0); // Zablokuj mostek
+
+            while (shared_memory[0] > 0) 
+            {
+                if (shared_memory[1] < MAX_PASSENGERS) 
+                {
+                    printf("Pasażer wchodzi na statek.\n");
+                    shared_memory[0]--;
+                    shared_memory[1]++;
+                    sleep(1);
+                } else {
+                    printf("Pasażer opuszcza mostek, brak miejsca na statku.\n");
+                    shared_memory[0]--;
+                    sleep(1);
+                }
+            }
+            
+            semaphore_signal(sem_id, 0, 0); // Odblokuj mostek
+            printf("Kapitan Statku: Statek odpływa przed czasem.\n");
+            sleep(T2); // Symulacja rejsu
+            printf("Kapitan Statku: Rejs zakończony.\n");
+
+            semaphore_wait(sem_id, 1, 0); // Zablokuj statek
+
+            while (shared_memory[1] > 0) 
+            {
+                printf("Pasażer opuszcza statek.\n");
+                shared_memory[1]--;
+                sleep(1);
+            }
+
+            semaphore_signal(sem_id, 1, 0); // Odblokuj statek
         }
-
-        // Zablokowanie mostku
-        semaphore_wait(semid, 0, 0);
-        printf("Kapitan Statku: Mostek zablokowany. Rozpoczynam wyprowadzanie pasażerów.\n");
-
-        // Wysyłanie sygnałów do pasażerów w kolejności LIFO
-        for (int i = shared_memory[1] - 1; i >= 0; i--) {
-            passenger_exit_msg.type = shared_memory[i + 2]; // PID pasażera jako typ komunikatu
-            send_message_to_queue(message_queue_ID, &passenger_exit_msg, 0);
-            printf("Kapitan Statku: Wysłałem sygnał wyjścia do pasażera PID %d.\n", shared_memory[i + 2]);
-
-            // Oczekiwanie na potwierdzenie od pasażera
-            receive_message_from_queue(message_queue_ID, &signal_msg, passenger_exit_msg.type, 0);
-            printf("Kapitan Statku: Pasażer PID %d opuścił mostek.\n", shared_memory[i + 2]);
-        }
-
-        // Reset pamięci współdzielonej
-        shared_memory[1] = 0; // Liczba pasażerów na statku
-        semaphore_signal(semid, 0, 0); // Odblokowanie mostku
-        printf("Kapitan Statku: Mostek odblokowany. Statek gotowy na załadunek.\n");
     }
 
-    detach_shared_memory(shared_memory, shared_memory_ID);
-    delete_shared_memory(shared_memory_ID);
-    delete_message_queue(message_queue_ID);
-    destroy_semaphores(semid);
+    detach_shared_memory(shared_memory, shm_id);
+    delete_shared_memory(shm_id);
+    destroy_semaphores(sem_id);
+    delete_message_queue(msg_queue_id);
 
     return 0;
 }
