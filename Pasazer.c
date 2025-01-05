@@ -1,18 +1,23 @@
 #include "funkcje_header.h"
 #include <time.h>
-#include <sys/wait.h> // Dodanie biblioteki dla funkcji wait()
+#include <sys/wait.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define MAX_ON_BRIDGE 5    // Maksymalna liczba osób na kładce
 #define MAX_ON_SHIP 10     // Maksymalna liczba osób na statku
 
 int main() 
 {
-    // Klucze do semaforów
+    // Klucze do semaforów i pamięci współdzielonej
     key_t key_bridge = ftok(".", 'b'); 
     key_t key_ship = ftok(".", 's');   
-    key_t key_msg_queue = ftok(".", 'k'); // Klucz do kolejki komunikatów
+    key_t key_msg_queue = ftok(".", 'k'); 
+    key_t key_shared_pid = ftok(".", 'p'); 
 
-    if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1) 
+    if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1 || key_shared_pid == -1) 
     {
         perror("Błąd ftok");
         exit(1);
@@ -29,10 +34,20 @@ int main()
     // Inicjalizacja kolejki komunikatów
     int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
 
+    // Pamięć współdzielona do przechowywania PID-ów
+    int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);
+    pid_t *pids_on_ship = (pid_t *)attach_shared_memory(shared_pid_mem_id, NULL, 0);
+
+    // Zerowanie pamięci na początku
+    for (int i = 0; i < MAX_ON_SHIP; i++) 
+    {
+        pids_on_ship[i] = 0;
+    }
+
     // Flaga do pamięci współdzielonej (statek pełny)
     int shared_mem_id = initialize_shared_memory(".", 'f', sizeof(int), IPC_CREAT | 0666);
     int *ship_full_flag = (int *)attach_shared_memory(shared_mem_id, NULL, 0);
-    *ship_full_flag = 0; // Początkowo statek nie jest pełny
+    *ship_full_flag = 0;
 
     struct message received_signal;
     printf("Pasażerowie: Czekam na sygnał od KapitanaStatku...\n");
@@ -49,95 +64,96 @@ int main()
             if (*ship_full_flag == 1) 
             {
                 printf("Pasażer [%d]: Statek jest pełny! Nie wchodzę na kładkę.\n", getpid());
-                exit(0); // Proces kończy działanie
+                exit(0);
             }
 
-            semaphore_wait(sem_bridge, 0, 0); // Wejście na kładkę
+            semaphore_wait(sem_bridge, 0, 0);
             printf("Pasażer [%d]: Jest na kładce.\n", getpid());
-            sleep(2); // Symulacja przechodzenia przez kładkę
 
             printf("Pasażer [%d]: Próbuje wejść na statek...\n", getpid());
+            sleep(3);
 
-            // Sprawdzenie, czy są wolne miejsca na statku
             if (semctl(sem_ship, 0, GETVAL) > 0) 
             {
-                semaphore_wait(sem_ship, 0, 0); // Wejście na statek
+                semaphore_wait(sem_ship, 0, 0); 
                 sleep(1);
-                semaphore_signal(sem_bridge, 0, 0); // Zwalnianie miejsca na kładce
+                semaphore_signal(sem_bridge, 0, 0);
                 printf("Pasażer [%d]: Jest na statku.\n", getpid());
 
-                // Aktualizacja flagi, jeśli statek jest pełny
                 if (semctl(sem_ship, 0, GETVAL) == 0) 
                 {
-                    *ship_full_flag = 1; // Statek zapełniony
+                    *ship_full_flag = 1;
                 }
+
+                // Zapisanie PID pasażera do pamięci współdzielonej
+                for (int j = 0; j < MAX_ON_SHIP; j++) 
+                {
+                    if (pids_on_ship[j] == 0) 
+                    {
+                        pids_on_ship[j] = getpid();
+                        break;
+                    }
+                }
+
+                // Czekanie na sygnał od kapitana
+                // printf("Pasażer [%d]: Czekam na sygnał o rozpoczęciu schodzenia.\n", getpid());
+                pause();
             } 
             else 
             {
                 printf("Pasażer [%d]: Wszystkie miejsca na statku zajęte, schodzę z kładki.\n", getpid());
-                semaphore_signal(sem_bridge, 0, 0); // Zwalnienie miejsca na kładce
-                // Wyzwolenie sygnału dla pozostałych osób na kładce
-                while (semctl(sem_bridge, 0, GETVAL) < MAX_ON_BRIDGE) 
-                {
-                    semaphore_signal(sem_bridge, 0, 0); // Pozwolenie na zejście z kładki
-                    printf("Pasażer [%d]: Zmuszony do opuszczenia kładki.\n", getpid());
-                    sleep(1); // Symulacja schodzenia
-                }
+                semaphore_signal(sem_bridge, 0, 0);
+                exit(0);
             }
-
-            sleep(1); // Symulacja zajmowania miejsca lub opuszczania kładki
-
-            // Koniec procesu pasażera
-            printf("Pasażer [%d]: Zakończył operację.\n", getpid());
-            exit(0);
         }
-        sleep(1); // Odstęp między pasażerami
+        sleep(1);
     }
 
-    // Oczekiwanie na zakończenie wszystkich procesów pasażerów
-    for (int i = 0; i < MAX_ON_SHIP + 10; i++) 
+    // Oczekiwanie na zakończenie procesów, które nie weszły na statek
+    for (int i = 0; i < MAX_ON_SHIP + 10 - MAX_ON_SHIP; i++) 
     {
         wait(NULL);
     }
 
-
     // Wysłanie sygnału do KapitanaStatku
     struct message end_signal;
-    end_signal.type = 2; // Typ wiadomości - zakończenie wsiadania
+    end_signal.type = 2; 
     end_signal.content = 1;
 
-    printf("\nPasażer: Wszyscy pasażerowie są na statku. Wysyłam sygnał do KapitanaStatku.\n");
+    printf("\nPasażerowie: Wszyscy pasażerowie są na statku. Wysyłam sygnał do KapitanaStatku.\n");
     send_message_to_queue(message_queue_ID, &end_signal, 0);
 
     // Czekanie na sygnał powrotu statku
     struct message return_signal;
     printf("Pasażerowie: Czekam na sygnał od KapitanaStatku o powrocie statku do portu...\n");
     receive_message_from_queue(message_queue_ID, &return_signal, MSG_TYPE_RETURNED, 0);
-    printf("\nPasażerowie: Statek wrócił do portu. Rozpoczynamy schodzenie ze statku.\n");
 
-      // Symulacja schodzenia pasażerów
+    printf("\nPasażerowie: Rozpoczynamy schodzenie ze statku.\n");
+
+    // Wysłanie sygnału do procesów pasażerów na statku
     for (int i = 0; i < MAX_ON_SHIP; i++) 
     {
-        if (fork() == 0) 
+        if (pids_on_ship[i] > 0) 
         {
-            semaphore_wait(sem_bridge, 0, 0); // Wejście na kładkę
-            printf("Pasażer [%d]: Schodzi z kładki...\n", getpid());
-            sleep(2); // Symulacja przechodzenia przez kładkę
-            semaphore_signal(sem_bridge, 0, 0); // Zwalnianie miejsca na kładce
-            exit(0);
+            semaphore_wait(sem_bridge, 0, 0);
+            printf("Pasażer [%d]: Schodzę ze statku...\n", pids_on_ship[i]);
+            sleep(1);
+            semaphore_signal(sem_bridge, 0, 0);
+            kill(pids_on_ship[i], SIGUSR1); // Sygnał dla pasażerów
         }
-        sleep(1); // Odstęp między pasażerami
     }
 
-    // Oczekiwanie na zakończenie procesów schodzenia
+    // Oczekiwanie na zakończenie procesów pasażerów
     for (int i = 0; i < MAX_ON_SHIP; i++) 
     {
         wait(NULL);
     }
 
     printf("\nPasażerowie: Wszyscy pasażerowie zeszli ze statku.\n");
-    
+
     // Zwolnienie zasobów
+    detach_shared_memory(pids_on_ship, shared_pid_mem_id);
+    delete_shared_memory(shared_pid_mem_id);
     detach_shared_memory(ship_full_flag, shared_mem_id);
     delete_shared_memory(shared_mem_id);
 

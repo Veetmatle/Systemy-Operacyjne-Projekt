@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #define MSG_TYPE_PERMISSION 1
 #define MSG_TYPE_RETURNED 10

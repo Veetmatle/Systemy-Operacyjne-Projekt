@@ -5,6 +5,8 @@
 
 #define MSG_TYPE_PERMISSION 1 // Typ wiadomości dla zezwolenia na wejście na statek
 #define T2 10 // Czas trwania rejsu w sekundach
+#define R 5 // liczba rejsów
+#define T1 60 //statek odpływa co minute
 
 int main() 
 {
