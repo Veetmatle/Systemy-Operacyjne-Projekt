@@ -9,6 +9,9 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#define MSG_TYPE_PERMISSION 1
+#define MSG_TYPE_RETURNED 10
+
 // Struktura komunikatu
 struct message 
 {

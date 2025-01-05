@@ -1,80 +1,51 @@
 #include "funkcje_header.h"
-#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-#define MAX_PASSENGERS 10 // Maksymalna liczba pasażerów na statku
-#define MAX_BRIDGE 5      // Maksymalna liczba osób na mostku
-#define T1 5              // Czas do odpłynięcia
-#define T2 10             // Czas rejsu
+#define MSG_TYPE_PERMISSION 1 // Typ wiadomości dla zezwolenia na wejście na statek
+#define T2 10 // Czas trwania rejsu w sekundach
 
 int main() 
 {
-    // Inicjalizacja pamięci współdzielonej
-    int shm_id = initialize_shared_memory(".", 'S', (MAX_PASSENGERS + 2) * sizeof(int), IPC_CREAT | 0666);
-    int *shared_memory = (int *)attach_shared_memory(shm_id, NULL, 0);
+    // Inicjalizacja kolejki komunikatów
+    int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
 
-    // Inicjalizacja semaforów
-    key_t sem_key = ftok(".", 'M');
-    int sem_id = initialize_semaphores(sem_key, 2);
-    
-    semctl(sem_id, 0, SETVAL, 1); // Semafor dla mostku (muteks)
-    semctl(sem_id, 1, SETVAL, 1); // Semafor dla statku (muteks)
+    struct message signal_to_passengers;
+    signal_to_passengers.type = MSG_TYPE_PERMISSION; // Typ wiadomości (zezwolenie)
+    signal_to_passengers.content = 1; // Treść wiadomości (np. kod "zezwalam")
 
-    // Inicjalizacja kolejek komunikatów
-    int msg_queue_id = initialize_message_queue(".", 'Q', IPC_CREAT | 0666);
+    printf("KapitanStatku: Przygotowuję statek do wsiadania pasażerów...\n");
+    sleep(3); // Symulacja przygotowań
 
-    struct message signal_msg;
+    printf("KapitanStatku: Wysyłam sygnał do pasażerów: Można wchodzić na statek.\n");
+    send_message_to_queue(message_queue_ID, &signal_to_passengers, 0);
 
-    shared_memory[0] = 0; // Liczba osób na mostku
-    shared_memory[1] = 0; // Liczba osób na statku
+    // Odbiór sygnału zakończenia wsiadania
+    struct message received_end_signal;
+    printf("KapitanStatku: Czekam na sygnał o zakończeniu wsiadania pasażerów...\n");
+    receive_message_from_queue(message_queue_ID, &received_end_signal, 2, 0);
+    printf("\nKapitanStatku: Otrzymałem sygnał, że wszyscy pasażerowie są na statku. Rozpoczynam rejs.\n");
 
-    printf("Kapitan Statku: Gotowy do pracy.\n");
-
-    while (1) 
+    // Symulacja rejsu
+    printf("KapitanStatku: Statek odpływa...\n");
+    for (int i = 0; i < T2; i++) 
     {
-        // Odbieranie sygnałów od Kapitana Portu
-        receive_message_from_queue(msg_queue_id, &signal_msg, 1, 0);
-        
-        if (signal_msg.content == 1) {
-            // Sygnał 1: Odpłynięcie przed czasem
-            semaphore_wait(sem_id, 0, 0); // Zablokuj mostek
-
-            while (shared_memory[0] > 0) 
-            {
-                if (shared_memory[1] < MAX_PASSENGERS) 
-                {
-                    printf("Pasażer wchodzi na statek.\n");
-                    shared_memory[0]--;
-                    shared_memory[1]++;
-                    sleep(1);
-                } else {
-                    printf("Pasażer opuszcza mostek, brak miejsca na statku.\n");
-                    shared_memory[0]--;
-                    sleep(1);
-                }
-            }
-            
-            semaphore_signal(sem_id, 0, 0); // Odblokuj mostek
-            printf("Kapitan Statku: Statek odpływa przed czasem.\n");
-            sleep(T2); // Symulacja rejsu
-            printf("Kapitan Statku: Rejs zakończony.\n");
-
-            semaphore_wait(sem_id, 1, 0); // Zablokuj statek
-
-            while (shared_memory[1] > 0) 
-            {
-                printf("Pasażer opuszcza statek.\n");
-                shared_memory[1]--;
-                sleep(1);
-            }
-
-            semaphore_signal(sem_id, 1, 0); // Odblokuj statek
-        }
+        printf("KapitanStatku: Statek w drodze... %d sekund\n", i + 1);
+        sleep(1);
     }
+    printf("\nKapitanStatku: Statek zakończył rejs.\n");
 
-    detach_shared_memory(shared_memory, shm_id);
-    delete_shared_memory(shm_id);
-    destroy_semaphores(sem_id);
-    delete_message_queue(msg_queue_id);
+    // Wysłanie wiadomości o powrocie statku do portu
+    struct message return_signal;
+    return_signal.type = MSG_TYPE_RETURNED;
+    return_signal.content = 1;
+    send_message_to_queue(message_queue_ID, &return_signal, 0);
+    printf("KapitanStatku: Wysłano sygnał do pasażerów: Statek wrócił do portu.\n");
+
+    // Usuwanie kolejki komunikatów
+    delete_message_queue(message_queue_ID);
+    printf("KapitanStatku: Usuwam kolejkę komunikatów i kończę operację.\n");
 
     return 0;
 }
