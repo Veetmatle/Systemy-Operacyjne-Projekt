@@ -7,7 +7,7 @@
 #define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu
 #define T2 10                 // Czas trwania rejsu w sekundach                  // Liczba rejsów
 #define T1 60                 // Statek odpływa co minutę
-#define R 2
+#define R 1
 
 int main() 
 {

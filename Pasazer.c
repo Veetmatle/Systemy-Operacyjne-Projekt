@@ -7,10 +7,10 @@
 #include <unistd.h>
 
 #define MAX_ON_BRIDGE 5    // Maksymalna liczba osób na kładce
-#define MAX_ON_SHIP 10     // Maksymalna liczba osób na statku               // Liczba rejsów
+#define MAX_ON_SHIP 10     // Maksymalna liczba osób na statku
 #define T1 60              // Czas między odpłynięciami
 #define T2 10              // Czas trwania rejsu
-#define R 2
+#define R 1
 
 int main() 
 {
@@ -160,6 +160,16 @@ int main()
 
         printf("Pasażerowie: Wysłano sygnał do KapitanaStatku, że wszyscy pasażerowie zeszli ze statku.\n");
         send_message_to_queue(message_queue_ID, &all_passengers_disembarked_signal, 0);
+
+        // Zwolnienie pamięci współdzielonej i odłączenie segmentów
+        detach_shared_memory(pids_on_ship, shared_pid_mem_id);
+        detach_shared_memory(ship_full_flag, shared_mem_id);
+        delete_shared_memory(shared_pid_mem_id);
+        delete_shared_memory(shared_mem_id);
+
+        // Usunięcie semaforów
+        destroy_semaphores(sem_bridge);
+        destroy_semaphores(sem_ship);
     }
 
     printf("\n=== Wszystkie rejsy zakończone ===\n");
