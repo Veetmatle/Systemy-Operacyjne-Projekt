@@ -10,7 +10,7 @@
 #define MAX_ON_SHIP 10     // Maksymalna liczba osób na statku               // Liczba rejsów
 #define T1 60              // Czas między odpłynięciami
 #define T2 10              // Czas trwania rejsu
-#define R 1 
+#define R 2
 
 int main() 
 {

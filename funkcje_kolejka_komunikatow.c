@@ -45,3 +45,22 @@ void delete_message_queue(int mesg_queue_ID)
         exit(1);
     }
 }
+
+void clear_existing_message_queue(const char *path, int identifier) 
+{
+    key_t key = ftok(path, identifier);
+    if (key == -1) 
+    {
+        perror("Ftok error");
+        return;
+    }
+
+    int msqid = msgget(key, 0666);
+    if (msqid != -1) 
+    {
+        printf("Usuwanie istniejącej kolejki komunikatów...\n");
+        if (msgctl(msqid, IPC_RMID, NULL) == -1) {
+            perror("Msgctl IPC_RMID error");
+        }
+    }
+}

@@ -31,10 +31,10 @@ int initialize_message_queue(const char *path, int identifier, int flags);
 void send_message_to_queue(int mesg_queue_ID, struct message *msg_ptr, int msg_flag);
 void receive_message_from_queue(int mesg_queue_ID, struct message *msg_ptr, int message_type, int msg_flag);
 void delete_message_queue(int mesg_queue_ID);
+void clear_existing_message_queue(const char *path, int identifier);
 
 // Funkcje do obsługi semaforów
 int initialize_semaphores(key_t key, int num_semaphores);
 void semaphore_signal(int semid, int sem_num, int flags);
 void semaphore_wait(int semid, int sem_num, int flags);
 void destroy_semaphores(int semid);
-

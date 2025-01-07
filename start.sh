@@ -1,5 +1,3 @@
-#!/bin/bash
-# Uruchom KapitanaStatku i czekaj na jego zakończenie
-./KapitanStatku
-# Następnie uruchom Pasazera
-./Pasazer
+gcc -o KapitanStatku KapitanStatku.c funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semafory.c funkcje_header.h
+gcc -o Pasazer Pasazer.c funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semaforow.c funkcje_header.h
+gcc -o KapitanPortu KapitanPortu.c funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semaforow.c funkcje_header.h

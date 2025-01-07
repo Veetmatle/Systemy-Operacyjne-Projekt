@@ -7,10 +7,11 @@
 #define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu
 #define T2 10                 // Czas trwania rejsu w sekundach                  // Liczba rejsów
 #define T1 60                 // Statek odpływa co minutę
-#define R 1 
+#define R 2
 
 int main() 
 {
+    clear_existing_message_queue(".", 'k');
     for (int rejs = 0; rejs < R; rejs++) 
     {
         printf("\n=== Rozpoczynam rejs %d ===\n", rejs + 1);

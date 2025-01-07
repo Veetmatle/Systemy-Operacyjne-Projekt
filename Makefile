@@ -1,37 +1,27 @@
-# Kompilator i flagi
+# Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -I.
+CFLAGS = -Wall -Wextra -pedantic -O2
 
-# Pliki źródłowe i nagłówki
-SRC_STATKU = KapitanStatku.c funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semafory.c
-SRC_PORTU = KapitanPortu.c funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semafory.c
-SRC_PASAZER = Pasazer.c funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semafory.c
-
+# Common files
 HEADERS = funkcje_header.h
+COMMON_SRC = funkcje_kolejka_komunikatow.c funkcje_shared_memory.c zadanie_semaforow.c
 
-# Nazwy programów
-BIN_STATKU = KapitanStatku
-BIN_PORTU = KapitanPortu
-BIN_PASAZER = Pasazer
+# Targets
+TARGETS = KapitanStatku Pasażer KapitanPortu
 
-# Domyślna reguła
-all: $(BIN_STATKU) $(BIN_PORTU) $(BIN_PASAZER)
+# Rules
+all: $(TARGETS)
 
-# Reguły dla KapitanStatku
-$(BIN_STATKU): $(SRC_STATKU) $(HEADERS)
-	$(CC) $(CFLAGS) $(SRC_STATKU) -o $@
+KapitanStatku: KapitanStatku.c $(COMMON_SRC) $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ KapitanStatku.c $(COMMON_SRC)
 
-# Reguły dla KapitanPortu
-$(BIN_PORTU): $(SRC_PORTU) $(HEADERS)
-	$(CC) $(CFLAGS) $(SRC_PORTU) -o $@
+Pasażer: Pasażer.c $(COMMON_SRC) $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ Pasażer.c $(COMMON_SRC)
 
-# Reguły dla Pasazer
-$(BIN_PASAZER): $(SRC_PASAZER) $(HEADERS)
-	$(CC) $(CFLAGS) $(SRC_PASAZER) -o $@
+KapitanPortu: KapitanPortu.c $(COMMON_SRC) $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ KapitanPortu.c $(COMMON_SRC)
 
-# Reguła czyszczenia
 clean:
-	rm -f $(BIN_STATKU) $(BIN_PORTU) $(BIN_PASAZER)
+	rm -f $(TARGETS)
 
-# Phony targets
 .PHONY: all clean
