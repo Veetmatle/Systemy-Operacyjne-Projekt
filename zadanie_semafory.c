@@ -47,3 +47,24 @@ void destroy_semaphores(int semid)
         exit(1);
     }
 }
+
+void clear_existing_semaphores(const char *path, int identifier) 
+{
+    key_t key = ftok(path, identifier);
+    if (key == -1) 
+    {
+        perror("Błąd ftok w clear_existing_semaphores");
+        return;
+    }
+
+    int semid = semget(key, 1, 0666);
+    if (semid != -1) 
+    {
+        printf("Usuwanie istniejących semaforów o ID: %d\n", semid);
+        if (semctl(semid, 0, IPC_RMID) == -1) 
+        {
+            perror("Błąd podczas usuwania semaforów");
+            exit(1);
+        }
+    }
+}

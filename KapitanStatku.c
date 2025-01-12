@@ -5,19 +5,17 @@
 
 #define MSG_TYPE_PERMISSION 1 // Typ wiadomości dla zezwolenia na wejście na statek
 #define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu
-#define T2 10                 // Czas trwania rejsu w sekundach                  // Liczba rejsów
-#define T1 60                 // Statek odpływa co minutę
-#define R 1
+#define T2 10                 // Czas trwania rejsu w sekundach            
+#define T1 30                 // Statek odpływa co minutę    
 
 int main() 
 {
-    clear_existing_message_queue(".", 'k');
+    // clear_existing_message_queue(".", 'k'); <- to powinien miec pierwszy proces kroty sie odpala
+    int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
+
     for (int rejs = 0; rejs < R; rejs++) 
     {
         printf("\n=== Rozpoczynam rejs %d ===\n", rejs + 1);
-
-        // Inicjalizacja kolejki komunikatów
-        int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
 
         if (rejs == 0)
         {
@@ -71,15 +69,37 @@ int main()
         // Wysłanie sygnału o rozpoczęciu kolejnego wsiadania
         if (rejs != R - 1)
         {
+            // wiadomosc do kapitana portu
+            struct message signal_to_port;
+            signal_to_port.type = MSG_TYPE_PORT;
+            signal_to_port.content = 55;
+            printf("KapitanStatku: Daje info do kapitana portu, kolejny rejs niedługo się zacznie...\n\n");
+            send_message_to_queue(message_queue_ID, &signal_to_port, 0);
+
+            // wiadomosc do pasazerow, mozna wchodzic od nowa
             struct message signal_to_passengers;
-            signal_to_passengers.type = MSG_TYPE_PERMISSION; // Typ wiadomości (zezwolenie)
-            signal_to_passengers.content = 1;               // Treść wiadomości (np. kod "zezwalam")
+            signal_to_passengers.type = MSG_TYPE_PERMISSION; 
+            signal_to_passengers.content = 1;              
             printf("KapitanStatku: Wysyłam sygnał do pasażerów: Można wchodzić na statek.\n");
             send_message_to_queue(message_queue_ID, &signal_to_passengers, 0);
 
-            // Oczekiwanie przed kolejnym rejem
-            printf("KapitanStatku: Czekam [%d] sekund przed rozpoczęciem kolejnego rejsu...\n", T1);
-            sleep(T1);
+            // sprawdzam czy kapitanPortu nakazuje wczesniejsze odpłynięcie
+            struct message received_early_departure_signal;
+            receive_message_from_queue(message_queue_ID, &received_early_departure_signal, 0, 0);
+
+            if (received_early_departure_signal.type == MSG_TYPE_EARLY_DEPARTURE)
+            {
+                printf("\n\nKapitanPortu: OŚWIADCZAM WCZEŚNIEJSZE WYPŁYNIĘCIE!\n\n");
+                printf("\nKapitanStatku: Odpływam niebawem!\n");
+            }
+            else
+            {
+                printf("\n\nKapitanPortu: OŚWIADCZAM STATEK ODPŁYWA NORMALNIE!\n\n");
+
+                // Oczekiwanie przed kolejnym rejem
+                printf("KapitanStatku: Czekam [%d] sekund przed rozpoczęciem kolejnego rejsu...\n", T1);
+                sleep(T1);
+            }
         }
 
         // Na zakończenie ostatniego rejsu usuń kolejkę komunikatów

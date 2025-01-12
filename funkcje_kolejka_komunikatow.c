@@ -51,16 +51,19 @@ void clear_existing_message_queue(const char *path, int identifier)
     key_t key = ftok(path, identifier);
     if (key == -1) 
     {
-        perror("Ftok error");
+        perror("Błąd ftok w clear_existing_message_queue");
         return;
     }
 
     int msqid = msgget(key, 0666);
     if (msqid != -1) 
     {
-        printf("Usuwanie istniejącej kolejki komunikatów...\n");
-        if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-            perror("Msgctl IPC_RMID error");
+        printf("Usuwanie istniejącej kolejki komunikatów o ID: %d\n", msqid);
+        if (msgctl(msqid, IPC_RMID, NULL) == -1) 
+        {
+            perror("Błąd podczas usuwania kolejki komunikatów");
+            exit(1); // Wyjście, jeśli kolejka nie może być usunięta
         }
     }
 }
+

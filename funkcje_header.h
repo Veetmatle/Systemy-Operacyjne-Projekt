@@ -10,8 +10,15 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define MSG_TYPE_PERMISSION 1
-#define MSG_TYPE_RETURNED 10
+#define MSG_TYPE_PERMISSION 1 // pakowanie sie na statek
+#define MSG_TYPE_RETURNED 10 // statek wrocil
+#define MSG_TYPE_PORT_READY 30 // port gotowy do obslugi przez KP (losowanie decyzji) 
+#define MSG_TYPE_NORMAL_DEPARTURE 50 // wiadomosc o normalnym odplywaniu od KP
+#define MSG_TYPE_END_OF_OPERATION 40 // wiadomosc do kapitana portu zeby przerwal obsluge portu
+#define R 3  // ilosc rejsow
+#define MSG_TYPE_PORT 55 //wiadomosc do kapitana portu zeby zaczal zarzadzac portem
+#define MSG_TYPE_EARLY_DEPARTURE 99 // wiadomosc o wczesniejszym odplywaniu
+
 
 // Struktura komunikatu
 struct message 
@@ -25,6 +32,7 @@ int initialize_shared_memory(const char *path, int identifier, size_t size, int 
 void *attach_shared_memory(int shmid, const void *shmaddr, int shmflg);
 void detach_shared_memory(void *shmaddr, int shmid);
 void delete_shared_memory(int shmid);
+void clear_existing_shared_memory(const char *path, int identifier);
 
 // Funkcje do obsługi kolejki komunikatów
 int initialize_message_queue(const char *path, int identifier, int flags);
@@ -38,3 +46,4 @@ int initialize_semaphores(key_t key, int num_semaphores);
 void semaphore_signal(int semid, int sem_num, int flags);
 void semaphore_wait(int semid, int sem_num, int flags);
 void destroy_semaphores(int semid);
+void clear_existing_semaphores(const char *path, int identifier);

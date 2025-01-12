@@ -8,12 +8,16 @@
 
 #define MAX_ON_BRIDGE 5    // Maksymalna liczba osób na kładce
 #define MAX_ON_SHIP 10     // Maksymalna liczba osób na statku
-#define T1 60              // Czas między odpłynięciami
+#define T1 30              // Czas między odpłynięciami
 #define T2 10              // Czas trwania rejsu
-#define R 1
 
 int main() 
 {
+    clear_existing_shared_memory(".", 'p');
+    clear_existing_semaphores(".", 'b');
+    clear_existing_semaphores(".", 's');
+    int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
+
     for (int rejs = 0; rejs < R; rejs++) 
     {
         // Klucze do semaforów i pamięci współdzielonej
@@ -35,9 +39,6 @@ int main()
         // Ustawienie maksymalnych wartości semaforów
         semctl(sem_bridge, 0, SETVAL, MAX_ON_BRIDGE);
         semctl(sem_ship, 0, SETVAL, MAX_ON_SHIP);
-
-        // Inicjalizacja kolejki komunikatów
-        int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
 
         // Pamięć współdzielona do przechowywania PID-ów
         int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);

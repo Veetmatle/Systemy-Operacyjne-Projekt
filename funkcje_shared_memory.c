@@ -48,3 +48,25 @@ void delete_shared_memory(int shmid)
         exit(1);
     }
 }
+
+void clear_existing_shared_memory(const char *path, int identifier) 
+{
+    key_t key = ftok(path, identifier);
+    if (key == -1) 
+    {
+        perror("Błąd ftok w clear_existing_shared_memory");
+        return;
+    }
+
+    int shmid = shmget(key, 0, 0666);
+    if (shmid != -1) 
+    {
+        printf("Usuwanie istniejącej pamięci współdzielonej o ID: %d\n", shmid);
+        if (shmctl(shmid, IPC_RMID, NULL) == -1) 
+        {
+            perror("Błąd podczas usuwania pamięci współdzielonej");
+            exit(1);
+        }
+    }
+}
+

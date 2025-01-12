@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "funkcje_header.h": "c",
-        "wait.h": "c"
+        "wait.h": "c",
+        "stdlib.h": "c"
     }
 }
