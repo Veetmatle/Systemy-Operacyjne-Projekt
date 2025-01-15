@@ -8,8 +8,8 @@
 
 #define MAX_ON_BRIDGE 5    // Maksymalna liczba osób na kładce
 #define MAX_ON_SHIP 10     // Maksymalna liczba osób na statku
-#define T1 30              // Czas między odpłynięciami
-#define T2 10              // Czas trwania rejsu
+#define T1 30             // Czas między odpłynięciami
+#define T2 5              // Czas trwania rejsu
 
 int main() 
 {
@@ -75,14 +75,13 @@ int main()
 
                 semaphore_wait(sem_bridge, 0, 0);
                 printf("Pasażer [%d]: Jest na kładce.\n", getpid());
-                sleep(3);
+                usleep(300000);
 
                 printf("Pasażer [%d]: Próbuje wejść na statek...\n", getpid());
 
                 if (semctl(sem_ship, 0, GETVAL) > 0) 
                 {
                     semaphore_wait(sem_ship, 0, 0); 
-                    sleep(1);
                     semaphore_signal(sem_bridge, 0, 0);
                     printf("Pasażer [%d]: Jest na statku.\n", getpid());
 
@@ -110,7 +109,7 @@ int main()
                     exit(0);
                 }
             }
-            sleep(1);
+            usleep(100000);
         }
 
         // Oczekiwanie na zakończenie procesów, które nie weszły na statek
@@ -141,7 +140,7 @@ int main()
             {
                 semaphore_wait(sem_bridge, 0, 0);
                 printf("Pasażer [%d]: Schodzę ze statku...\n", pids_on_ship[i]);
-                sleep(1);
+                usleep(100000);
                 semaphore_signal(sem_bridge, 0, 0);
                 kill(pids_on_ship[i], SIGUSR1); // Sygnał dla procesu pasażera
             }

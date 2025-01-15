@@ -67,3 +67,30 @@ void clear_existing_message_queue(const char *path, int identifier)
     }
 }
 
+int receive_message_queue_antyprzerwanie(int msq_ID, long msgtype, struct message *msg) 
+{
+    while (1) 
+    {
+        if (msgrcv(msq_ID, msg, sizeof(*msg) - sizeof(long), msgtype, 0) == -1) 
+        {
+            if (errno == EINTR) 
+            {
+                printf("Przerwano przez sygnał podczas odbierania komunikatu o typie: %ld\n", msgtype);
+                // Przerwane przez sygnał – ponawiamy
+                continue;
+            } else if (errno == ENOMSG) 
+            {
+                // Brak komunikatu
+                printf("Brak komunikatu w kolejce o typie: %ld\n", msgtype);
+                continue;
+            } else 
+            {
+                // Błąd
+                printf("Blad recieve_message: %ld\n", msgtype);
+                return -1;
+            }
+        }
+        return 1;
+    }
+}
+

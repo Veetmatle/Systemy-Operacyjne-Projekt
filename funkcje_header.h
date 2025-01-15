@@ -1,14 +1,25 @@
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/msg.h>
-#include <sys/sem.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/sem.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <errno.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <stdarg.h>
 
 #define MSG_TYPE_PERMISSION 1 // pakowanie sie na statek
 #define MSG_TYPE_RETURNED 10 // statek wrocil
@@ -18,6 +29,7 @@
 #define R 3  // ilosc rejsow
 #define MSG_TYPE_PORT 55 //wiadomosc do kapitana portu zeby zaczal zarzadzac portem
 #define MSG_TYPE_EARLY_DEPARTURE 99 // wiadomosc o wczesniejszym odplywaniu
+#define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE 222 // sygnał do kapitana ze moze jechac (po signalu)
 
 
 // Struktura komunikatu
@@ -40,6 +52,7 @@ void send_message_to_queue(int mesg_queue_ID, struct message *msg_ptr, int msg_f
 void receive_message_from_queue(int mesg_queue_ID, struct message *msg_ptr, int message_type, int msg_flag);
 void delete_message_queue(int mesg_queue_ID);
 void clear_existing_message_queue(const char *path, int identifier);
+int receive_message_queue_antyprzerwanie(int msq_ID, long msgtype, struct message *msg);
 
 // Funkcje do obsługi semaforów
 int initialize_semaphores(key_t key, int num_semaphores);
