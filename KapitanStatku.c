@@ -7,9 +7,7 @@
 // wywalic semafora, dodac kolejke komunikatow po wyslaniu sygnalu
 
 #define MSG_TYPE_PERMISSION 1 // Typ wiadomości dla zezwolenia na wejście na statek
-#define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu
-#define T2 5                 // Czas trwania rejsu w sekundach            
-#define T1 60                 // Statek odpływa co T1   
+#define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu  
 #define SEMAPHORE_KEY 1234 // Klucz dla semafora
 
 int wczesniejsze_odplywanie = 0; // 0 - normalne 1 - szybsze
@@ -33,6 +31,11 @@ int main()
     signal(SIGUSR1, handle_early_departure);
     signal(SIGUSR2, handle_end_of_cruises);
 
+    // inicjalizacja pamieci wspoldzielonej zeby odczytywac PIDY osob na statku
+    int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);
+    pid_t *pids_on_ship   = (pid_t *)attach_shared_memory(shared_pid_mem_id, NULL, 0);
+
+
     for (int rejs = 0; rejs < R; rejs++) 
     {
         printf(RESET "\n=== Parostatkiem w piękny rejs numer %d ===\n", rejs + 1);
@@ -53,12 +56,25 @@ int main()
             send_message_to_queue(message_queue_ID, &signal_to_passengers, 0);
         }
 
-        // Odbiór wiadomosci zakończenia wsiadania
-        struct message received_end_signal;
-        printf(GREEN "KapitanStatku: Czekam na sygnał o zakończeniu wsiadania pasażerów...\n");
-        receive_message_from_queue(message_queue_ID, &received_end_signal, 2, 0);
+        printf(GREEN "KapitanStatku: Czekam, aż statek będzie pełny (pids_on_ship się zapełni)...\n");
+        while (1)
+        {
+            int count = 0;
+            for (int i = 0; i < MAX_ON_SHIP; i++)
+            {
+                if (pids_on_ship[i] != 0) // to znaczy, że ktoś tam siedzi
+                    count++;
+            }
 
-        printf(GREEN "\nKapitanStatku: Otrzymałem info, że wszyscy pasażerowie są na statku. Przygotowuję się do rejsu.\n");
+            // Jeżeli wbije MAX_ON_SHIP to znaczy ze wsiadanie zakonczone
+            if (count == MAX_ON_SHIP)
+            {
+                printf(GREEN "KapitanStatku: Dobra, widzę że wszyscy się zapakowali na statek...\n");
+                break;
+            }
+
+            usleep(50000); // 0.05 sek, żeby nie mielić CPU w pętli
+        }
 
         // wiadomosc do kapitana portu z PIDEM przed losowaniem (czy przerwanie, czy schodzą ze statku)
         struct message first_signal_to_port;
@@ -83,11 +99,26 @@ int main()
             return_signal.content = 999;
             send_message_to_queue(message_queue_ID, &return_signal, 0);
 
-            // pasazerowie zakonczyli opuszczanie statku, info o zakonczeniu schodzenia pasazerow
-            struct message passengers_disembarked_signal;
-            printf(GREEN "KapitanStatku: Czekam na sygnał, że wszyscy pasażerowie zeszli ze statku...\n");
-            receive_message_from_queue(message_queue_ID, &passengers_disembarked_signal, 3, 0);
-            printf(GREEN "KapitanStatku: Otrzymano sygnał, że wszyscy pasażerowie zeszli ze statku.\n");
+            // czekam az pasazerowie zejdą ze statku
+            printf(GREEN "KapitanStatku: Czekam, aż wszyscy pasażerowie zejdą (pids_on_ship będzie puste)...\n");
+            while (1)
+            {
+                int count = 0;
+                for (int i = 0; i < MAX_ON_SHIP; i++)
+                {
+                    if (pids_on_ship[i] != 0)
+                        count++;
+                }
+
+                if (count == 0)
+                {
+                    printf(GREEN "KapitanStatku: Widzę, że wszyscy pasażerowie zeszli ze statku.\n");
+                    break;
+                }
+
+                usleep(50000); 
+            }
+
 
             delete_message_queue(message_queue_ID);
             printf(GREEN "KapitanStatku: Usuwam kolejkę komunikatów i kończę operację.\n");
@@ -116,12 +147,26 @@ int main()
         return_signal.content = 1;
         send_message_to_queue(message_queue_ID, &return_signal, 0);
         printf(GREEN "KapitanStatku: Wysłano sygnał do pasażerów: Statek wrócił do portu.\n");
+        
+        // Czekanie aż pasażerowie zejdą ze statku
+        printf(GREEN "KapitanStatku: Czekam, aż wszyscy pasażerowie zejdą (pids_on_ship będzie puste)...\n");
+            while (1)
+            {
+                int count = 0;
+                for (int i = 0; i < MAX_ON_SHIP; i++)
+                {
+                    if (pids_on_ship[i] != 0)
+                        count++;
+                }
 
-        // pasazerowie zakonczyli opuszczanie statku, info o zakonczeniu schodzenia pasazerow
-        struct message passengers_disembarked_signal;
-        printf(GREEN "KapitanStatku: Czekam na sygnał, że wszyscy pasażerowie zeszli ze statku...\n");
-        receive_message_from_queue(message_queue_ID, &passengers_disembarked_signal, 3, 0);
-        printf(GREEN "KapitanStatku: Otrzymano sygnał, że wszyscy pasażerowie zeszli ze statku.\n");
+                if (count == 0)
+                {
+                    printf(GREEN "KapitanStatku: Widzę, że wszyscy pasażerowie zeszli ze statku.\n");
+                    break;
+                }
+
+                usleep(50000); 
+            }
 
         if (rejs != R - 1)
         {
@@ -141,7 +186,7 @@ int main()
 
             // czekanie na obsługę sygnału przez ultra kolejke komunikatow
             struct message captain_can_leave;
-            printf(GREEN "KapitanStatku: Czekam na pozwolenie od KapitanaStatku na odpłynięcie...\n");
+            printf(GREEN "KapitanStatku: Czekam na pozwolenie od KapitanaPortu na odpłynięcie...\n");
             receive_message_queue_antyprzerwanie(message_queue_ID, MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE, &captain_can_leave);
             printf(GREEN "KapitanStatku: Otrzymano sygnał, że statek gotowy do rejsu.\n");
 

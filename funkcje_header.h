@@ -26,7 +26,6 @@
 #define MSG_TYPE_PORT_READY 30 // port gotowy do obslugi przez KP (losowanie decyzji) 
 #define MSG_TYPE_NORMAL_DEPARTURE 50 // wiadomosc o normalnym odplywaniu od KP
 #define MSG_TYPE_END_OF_OPERATION 40 // wiadomosc do kapitana portu zeby przerwal obsluge portu
-#define R 15  // ilosc rejsow
 #define MSG_TYPE_PORT 55 //wiadomosc do kapitana portu zeby zaczal zarzadzac portem
 #define MSG_TYPE_EARLY_DEPARTURE 99 // wiadomosc o wczesniejszym odplywaniu
 #define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE 222 // sygnał do kapitana ze moze jechac (po signalu)
@@ -34,14 +33,19 @@
 #define MSG_TYPE_END_OF_PORT 111 //sygnał od kapitana portu ze koniec rejsow
 
 // statek i kładka
-#define MAX_ON_BRIDGE 2    // Maksymalna liczba osób na kładce
-#define MAX_ON_SHIP 20   // Maksymalna liczba osób na statku
+#define MAX_ON_BRIDGE 5   // Maksymalna liczba osób na kładce
+#define MAX_ON_SHIP 50   // Maksymalna liczba osób na statku
 
 // kolorki
 #define LIGHTBLUE "\033[94m"   // Kolor jasnoniebieski
 #define GREEN   "\033[32m"    // Kolor zielony 
 #define RED     "\033[31m"    // Kolor czerwony
 #define RESET   "\033[0m"     // Reset koloru
+
+// rzeczy do rejsow
+#define T1 60            // Czas między odpłynięciami
+#define T2 5              // Czas trwania rejsu
+#define R 15  // ilosc rejsow
 
 // Struktura komunikatu
 struct message 

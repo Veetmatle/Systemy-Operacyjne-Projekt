@@ -75,7 +75,7 @@ int receive_message_queue_antyprzerwanie(int msq_ID, long msgtype, struct messag
         {
             if (errno == EINTR) 
             {
-                printf("Przerwano przez sygnał podczas odbierania komunikatu o typie: %ld\n", msgtype);
+                // printf("Przerwano przez sygnał podczas odbierania komunikatu o typie: %ld\n", msgtype);
                 // Przerwane przez sygnał – ponawiamy
                 continue;
             } else if (errno == ENOMSG) 

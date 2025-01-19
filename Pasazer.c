@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define T1 60            // Czas między odpłynięciami
-#define T2 5              // Czas trwania rejsu
 
 int main() 
 {
@@ -16,42 +14,43 @@ int main()
     clear_existing_semaphores(".", 's');
     int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
 
+    // Klucze do semaforów i pamięci współdzielonej
+    key_t key_bridge = ftok(".", 'b'); 
+    key_t key_ship = ftok(".", 's');   
+    key_t key_msg_queue = ftok(".", 'k'); 
+    key_t key_shared_pid = ftok(".", 'p'); 
+
+    if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1 || key_shared_pid == -1) 
+    {
+        perror("Błąd ftok");
+        exit(1);
+    }
+
+    // Inicjalizacja semaforów
+    int sem_bridge = initialize_semaphores(key_bridge, 1);
+    int sem_ship = initialize_semaphores(key_ship, 1);
+
+    // Pamięć współdzielona do przechowywania PID-ów
+    int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);
+    pid_t *pids_on_ship = (pid_t *)attach_shared_memory(shared_pid_mem_id, NULL, 0);
+
+
     for (int rejs = 0; rejs < R; rejs++) 
     {
-        // Klucze do semaforów i pamięci współdzielonej
-        key_t key_bridge = ftok(".", 'b'); 
-        key_t key_ship = ftok(".", 's');   
-        key_t key_msg_queue = ftok(".", 'k'); 
-        key_t key_shared_pid = ftok(".", 'p'); 
-
-        if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1 || key_shared_pid == -1) 
-        {
-            perror("Błąd ftok");
-            exit(1);
-        }
-
-        // Inicjalizacja semaforów
-        int sem_bridge = initialize_semaphores(key_bridge, 1);
-        int sem_ship = initialize_semaphores(key_ship, 1);
+        // Flaga do pamięci współdzielonej (statek pełny)
+        int shared_mem_id = initialize_shared_memory(".", 'f', sizeof(int), IPC_CREAT | 0666);
+        int *ship_full_flag = (int *)attach_shared_memory(shared_mem_id, NULL, 0);
+        *ship_full_flag = 0;
 
         // Ustawienie maksymalnych wartości semaforów
         semctl(sem_bridge, 0, SETVAL, MAX_ON_BRIDGE);
         semctl(sem_ship, 0, SETVAL, MAX_ON_SHIP);
-
-        // Pamięć współdzielona do przechowywania PID-ów
-        int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);
-        pid_t *pids_on_ship = (pid_t *)attach_shared_memory(shared_pid_mem_id, NULL, 0);
 
         // Zerowanie pamięci współdzielonej dla PID-ów
         for (int i = 0; i < MAX_ON_SHIP; i++) 
         {
             pids_on_ship[i] = 0;
         }
-
-        // Flaga do pamięci współdzielonej (statek pełny)
-        int shared_mem_id = initialize_shared_memory(".", 'f', sizeof(int), IPC_CREAT | 0666);
-        int *ship_full_flag = (int *)attach_shared_memory(shared_mem_id, NULL, 0);
-        *ship_full_flag = 0;
 
         struct message received_signal;
         printf(LIGHTBLUE "Pasażerowie: Czekam na sygnał od KapitanaStatku...\n");
@@ -123,14 +122,6 @@ int main()
             wait(NULL);
         }
 
-        // Wysłanie sygnału do KapitanaStatku
-        struct message end_signal;
-        end_signal.type = 2; 
-        end_signal.content = 1;
-
-        printf(LIGHTBLUE "\nPasażerowie: Wszyscy pasażerowie są na statku. Wysyłam sygnał do KapitanaStatku.\n");
-        send_message_to_queue(message_queue_ID, &end_signal, 0);
-
         // Czekanie na sygnał powrotu statku
         struct message return_signal;
         printf(LIGHTBLUE "Pasażerowie: Czekam na sygnał od KapitanaStatku o powrocie do portu...\n");
@@ -148,6 +139,9 @@ int main()
                 usleep(1000);
                 semaphore_signal(sem_bridge, 0, 0);
                 kill(pids_on_ship[i], SIGUSR1); // Sygnał dla procesu pasażera
+
+                // zerujemy w pamieci dla kapitana: pasazer nie jest juz na statku
+                pids_on_ship[i] = 0; 
             }
         }
 
@@ -157,32 +151,25 @@ int main()
             wait(NULL);
         }
 
-        printf(LIGHTBLUE "\nPasażerowie: Wszyscy pasażerowie zeszli ze statku (Rejs %d).\n", rejs + 1);
-        // Wysłanie sygnału do KapitanaStatku, że wszyscy pasażerowie zeszli ze statku
-        struct message all_passengers_disembarked_signal;
-        all_passengers_disembarked_signal.type = 3; // Typ wiadomości informujący o zakończeniu schodzenia
-        all_passengers_disembarked_signal.content = 1;
-
-        printf(LIGHTBLUE "Pasażerowie: Wysłano sygnał do KapitanaStatku, że wszyscy pasażerowie zeszli ze statku.\n");
-        send_message_to_queue(message_queue_ID, &all_passengers_disembarked_signal, 0);
-
-        // Zwolnienie pamięci współdzielonej i odłączenie segmentów
-        detach_shared_memory(pids_on_ship, shared_pid_mem_id);
-        detach_shared_memory(ship_full_flag, shared_mem_id);
-        delete_shared_memory(shared_pid_mem_id);
-        delete_shared_memory(shared_mem_id);
-
-        // Usunięcie semaforów
-        destroy_semaphores(sem_bridge);
-        destroy_semaphores(sem_ship);
-
         if(return_signal.content == 999)
         {
             break;
         }
+        detach_shared_memory(ship_full_flag, shared_mem_id);
+        delete_shared_memory(shared_mem_id);
     }
 
     printf(RESET "\n=== Wszystkie rejsy zakończone ===\n");
+
+    sleep(0.5);
+    
+    // Zwolnienie pamięci współdzielonej i odłączenie segmentów
+    detach_shared_memory(pids_on_ship, shared_pid_mem_id);
+    delete_shared_memory(shared_pid_mem_id);
+
+    // Usunięcie semaforów
+    destroy_semaphores(sem_bridge);
+    destroy_semaphores(sem_ship);
 
     return 0;
 }
