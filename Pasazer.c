@@ -153,6 +153,8 @@ int main()
 
         if(return_signal.content == 999)
         {
+            detach_shared_memory(ship_full_flag, shared_mem_id);
+            delete_shared_memory(shared_mem_id);
             break;
         }
         detach_shared_memory(ship_full_flag, shared_mem_id);
@@ -161,15 +163,13 @@ int main()
 
     printf(RESET "\n=== Wszystkie rejsy zakończone ===\n");
 
-    sleep(0.5);
-    
-    // Zwolnienie pamięci współdzielonej i odłączenie segmentów
-    detach_shared_memory(pids_on_ship, shared_pid_mem_id);
-    delete_shared_memory(shared_pid_mem_id);
-
     // Usunięcie semaforów
     destroy_semaphores(sem_bridge);
     destroy_semaphores(sem_ship);
+
+    // Zwolnienie pamięci współdzielonej i odłączenie segmentów
+    detach_shared_memory(pids_on_ship, shared_pid_mem_id);
+    delete_shared_memory(shared_pid_mem_id);
 
     return 0;
 }

@@ -4,11 +4,9 @@
 #include <unistd.h>
 #include <errno.h>
 
-// wywalic semafora, dodac kolejke komunikatow po wyslaniu sygnalu
-
 #define MSG_TYPE_PERMISSION 1 // Typ wiadomości dla zezwolenia na wejście na statek
 #define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu  
-#define SEMAPHORE_KEY 1234 // Klucz dla semafora
+#define SEMAPHORE_KEY 1234 
 
 int wczesniejsze_odplywanie = 0; // 0 - normalne 1 - szybsze
 int koniec_rejsow = 0;
@@ -211,6 +209,6 @@ int main()
             printf(GREEN "KapitanStatku: Usuwam kolejkę komunikatów i kończę operację.\n");
         }
     }
-
+    
     return 0;
 }
