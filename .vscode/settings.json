@@ -2,6 +2,8 @@
     "files.associations": {
         "funkcje_header.h": "c",
         "wait.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "sem.h": "c",
+        "stdarg.h": "c"
     }
 }

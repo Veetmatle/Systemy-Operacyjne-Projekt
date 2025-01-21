@@ -153,7 +153,7 @@ int main()
 
         if(return_signal.content == 999)
         {
-            detach_shared_memory(ship_full_flag, shared_mem_id);
+            detach_shared_memory(ship_full_flag, shared_mem_id); 
             delete_shared_memory(shared_mem_id);
             break;
         }

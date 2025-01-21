@@ -4,10 +4,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define MSG_TYPE_PERMISSION 1 // Typ wiadomości dla zezwolenia na wejście na statek
-#define MSG_TYPE_RETURNED 10   // Typ wiadomości dla powrotu statku do portu  
-#define SEMAPHORE_KEY 1234 
-
 int wczesniejsze_odplywanie = 0; // 0 - normalne 1 - szybsze
 int koniec_rejsow = 0;
 
@@ -132,6 +128,15 @@ int main()
 
         // Symulacja rejsu
         printf(GREEN "KapitanStatku: Statek odpływa...\n");
+
+        /* Symulacja "przerwania" w rejsie już przed pętlą */
+        if(koniec_rejsow == 1)
+        {
+            rejs = R - 1;
+            printf(GREEN "KapitanStatku: Otrzymałem sygnał przerwania rejsów! Statek jest w drodze, kończę rejs normalnie i fajrant...\n");
+        }
+
+        // Symulacja rejsu
         for (int i = 0; i < T2; i++) 
         {
             printf(RESET "KapitanStatku: Statek w drodze... %d sekund\n", i + 1);
