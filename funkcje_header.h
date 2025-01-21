@@ -34,6 +34,10 @@
 #define MSG_TYPE_END_OF_PORT 111 //sygnał od kapitana portu ze koniec rejsow
 #define MSG_TYPE_SECOND_PORT_SIGNAL 88 // druga wiadomosc do portu (tuz przed rejsem)
 
+// do semaforow kapitanow
+#define SEM_SHIP_DEPARTED 0
+#define SEM_PORT_PROCESSED 1
+
 // statek i kładka
 #define MAX_ON_BRIDGE 5   // Maksymalna liczba osób na kładce
 #define MAX_ON_SHIP 30   // Maksymalna liczba osób na statku

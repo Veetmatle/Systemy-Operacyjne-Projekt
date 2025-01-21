@@ -14,28 +14,52 @@ int initialize_semaphores(key_t key, int num_semaphores)
 void semaphore_signal(int sem_id, int sem_num, int flags) 
 {
     struct sembuf sem_op;
-    sem_op.sem_num = sem_num; 
-    sem_op.sem_op = 1;        
-    sem_op.sem_flg = flags;   
+    sem_op.sem_num = sem_num;
+    sem_op.sem_op = 1;
+    sem_op.sem_flg = flags;
 
-    if (semop(sem_id, &sem_op, 1) == -1) 
+    while (1) 
     {
-        perror("Semaphore Signal error");
-        exit(1);
+        if (semop(sem_id, &sem_op, 1) == -1) 
+        {
+            if (errno == EINTR) 
+            {
+                // Operation was interrupted by a signal, retry
+                continue;
+            }
+            else 
+            {
+                perror("Semaphore Signal error");
+                exit(1);
+            }
+        }
+        break;
     }
 }
 
 void semaphore_wait(int sem_id, int sem_num, int flags) 
 {
     struct sembuf sem_op;
-    sem_op.sem_num = sem_num; 
-    sem_op.sem_op = -1;       
-    sem_op.sem_flg = flags;   
+    sem_op.sem_num = sem_num;
+    sem_op.sem_op = -1;
+    sem_op.sem_flg = flags;
 
-    if (semop(sem_id, &sem_op, 1) == -1) 
+    while (1) 
     {
-        perror("Semaphore Wait error");
-        exit(1);
+        if (semop(sem_id, &sem_op, 1) == -1) 
+        {
+            if (errno == EINTR) 
+            {
+                // Operation was interrupted by a signal, retry
+                continue;
+            }
+            else 
+            {
+                perror("Semaphore Wait error");
+                exit(1);
+            }
+        }
+        break;
     }
 }
 

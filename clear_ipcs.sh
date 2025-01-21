@@ -1,5 +1,7 @@
 #!/bin/bash
 
+lsof | grep Pasazer | grep laskowski | killall Pasazer -9
+
 USERNAME="laskowski"
 
 echo "Czyszczenie zasobów IPC dla użytkownika: $USERNAME"
