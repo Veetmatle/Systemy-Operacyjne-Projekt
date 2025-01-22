@@ -24,4 +24,4 @@ ipcs -s | grep $USERNAME | awk '{print $2}' | while read id; do
     ipcrm -s $id
 done
 
-echo "Wszystkie zasoby IPC dla użytkownika $USERNAME zostały wyczyszczone."
+echo "Wszystkie zasoby IPC zostały wyczyszczone."

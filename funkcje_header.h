@@ -20,6 +20,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #define MSG_TYPE_PERMISSION 1 // pakowanie sie na statek
 #define MSG_TYPE_RETURNED 10 // statek wrocil
@@ -39,19 +40,19 @@
 #define SEM_PORT_PROCESSED 1
 
 // statek i kładka
-#define MAX_ON_BRIDGE 5   // Maksymalna liczba osób na kładce
-#define MAX_ON_SHIP 30   // Maksymalna liczba osób na statku
+#define MAX_ON_BRIDGE 5   
+#define MAX_ON_SHIP 30 
 
 // kolorki
-#define LIGHTBLUE "\033[94m"   // Kolor jasnoniebieski
-#define GREEN   "\033[32m"    // Kolor zielony 
-#define RED     "\033[31m"    // Kolor czerwony
-#define RESET   "\033[0m"     // Reset koloru
+#define LIGHTBLUE "\033[94m" 
+#define GREEN   "\033[32m"    
+#define RED     "\033[31m"    
+#define RESET   "\033[0m"     
 
 // rzeczy do rejsow
-#define T1 60            // Czas między odpłynięciami
-#define T2 10              // Czas trwania rejsu
-#define R 15  // ilosc rejsow
+#define T1 600000      //0.5s      // Czas między odpłynięciami
+#define T2 10000 //0.01s            // Czas trwania rejsu
+#define R 15  
 
 // Struktura komunikatu
 struct message 

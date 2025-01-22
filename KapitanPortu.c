@@ -31,8 +31,8 @@ int main()
         receive_message_from_queue(message_queue_ID, &received_signal_first_port, MSG_TYPE_FIRST_PORT_SIGNAL, 0);
         pid_t captain_pid = received_signal_first_port.content;
         
-        // 2. Decyzja o przerwaniu rejsów (losowo 20%)
-        int stop_cruises = (rand() % 5 == 0); // 20% szans
+        // 2. Decyzja o przerwaniu rejsów (losowo 10%)
+        int stop_cruises = (rand() % 10 == 0); // 10% szans
         if (stop_cruises) 
         {
             printf(RED "\nKapitanPortu: DECYZJA: Przerywamy rejsy - wysyłam sygnał SIGUSR2!\n");
@@ -51,7 +51,7 @@ int main()
         printf(RED "KapitanPortu: Oczekuję na odpłynięcie statku (SEM_SHIP_DEPARTED)\n");
         semaphore_wait(sem_id, SEM_SHIP_DEPARTED, 0);
 
-        stop_cruises = ((rand() % 10) < 3);
+        stop_cruises = (rand() % 10 == 1);
         if (stop_cruises) 
         {
             printf(RED "\nKapitanPortu: DECYZJA: Przerywamy rejsy - wysyłam sygnał SIGUSR2!\n");
@@ -69,12 +69,10 @@ int main()
         // Jeśli to nie ostatni rejs, obsługujemy sygnał w stylu: kolejny załadunek
         if (rejs != R - 1)
         {
-            // 4. Oczekiwanie na informację, że statek wrócił i chce odpływać ponownie (MSG_TYPE_PORT)
             struct message received_signal;
             receive_message_from_queue(message_queue_ID, &received_signal, MSG_TYPE_PORT, 0);
             printf(RED "\nKapitanPortu: Otrzymano sygnał od KapitanaStatku (PID: %d)\n", received_signal.content);
         
-            // 5. Decyzja o wcześniejszym wypłynięciu (30% szans)
             int early_departure = ((rand() % 10) < 3);
             if (early_departure) 
             {
@@ -92,6 +90,6 @@ int main()
             send_message_to_queue(message_queue_ID, &departure_permission, 0);
         }
     }
-
+    
     return 0;
 }

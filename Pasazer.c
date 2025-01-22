@@ -1,20 +1,25 @@
 #include "funkcje_header.h"
-#include <time.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
+volatile bool reaper_running = true;
+
+void* reaper_thread(void* arg) 
+{
+    while (reaper_running) 
+    {
+        while (waitpid(-1, NULL, WNOHANG) > 0) {}
+        usleep(1000); 
+    }
+    return NULL;
+}
 
 int main() 
 {
+    clear_existing_shared_memory(".", 'e');
     clear_existing_shared_memory(".", 'p');
     clear_existing_semaphores(".", 'b');
     clear_existing_semaphores(".", 's');
     int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
 
-    // Klucze do semaforów i pamięci współdzielonej
     key_t key_bridge = ftok(".", 'b'); 
     key_t key_ship = ftok(".", 's');   
     key_t key_msg_queue = ftok(".", 'k'); 
@@ -34,13 +39,31 @@ int main()
     int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);
     pid_t *pids_on_ship = (pid_t *)attach_shared_memory(shared_pid_mem_id, NULL, 0);
 
+    // Inicjalizacja pamięci współdzielonej dla flagi koniec_wchodzenia
+    int shared_end_boarding_id = initialize_shared_memory(".", 'e', sizeof(int), IPC_CREAT | 0666);
+    int *koniec_wchodzenia = (int *)attach_shared_memory(shared_end_boarding_id, NULL, 0);
+
+    // Dostęp do pamięci współdzielonej dla licznika
+    int shared_counter_id = initialize_shared_memory(".", 'c', sizeof(int), IPC_CREAT | 0666);
+    int *shared_counter = (int *)attach_shared_memory(shared_counter_id, NULL, 0);
+    *shared_counter = 0;
+
+    // pamiec wspoldzelona - flaga czy statek pełny
+    int shared_mem_id = initialize_shared_memory(".", 'f', sizeof(int), IPC_CREAT | 0666);
+    int *ship_full_flag = (int *)attach_shared_memory(shared_mem_id, NULL, 0);
+
+    // Utworzenie watku zbierajacego procesy
+    pthread_t reaper_tid;
+    if (pthread_create(&reaper_tid, NULL, reaper_thread, NULL) != 0) 
+    {
+        perror("Błąd tworzenia wątku");
+        exit(1);
+    }
 
     for (int rejs = 0; rejs < R; rejs++) 
     {
-        // Flaga do pamięci współdzielonej (statek pełny)
-        int shared_mem_id = initialize_shared_memory(".", 'f', sizeof(int), IPC_CREAT | 0666);
-        int *ship_full_flag = (int *)attach_shared_memory(shared_mem_id, NULL, 0);
         *ship_full_flag = 0;
+        *shared_counter = 0;
 
         // Ustawienie maksymalnych wartości semaforów
         semctl(sem_bridge, 0, SETVAL, MAX_ON_BRIDGE);
@@ -61,16 +84,23 @@ int main()
         // Symulacja wchodzenia pasażerów
         for (int i = 0; i < MAX_ON_SHIP + 10; i++) 
         {
-            pid_t pid = fork(); // Tworzenie procesu dla każdego pasażera
+            pid_t pid = fork(); 
             if (pid == -1)
             {
                 perror("Fork failed");
+                system("./clear_ipcs.sh"); 
                 return -1;
             }
 
             if (pid == 0)
-            {
+            { 
                 printf(LIGHTBLUE "Pasażer [%d]: Próbuje wejść na kładkę...\n", getpid());
+                 if (*koniec_wchodzenia == 1) 
+                {
+                    printf(LIGHTBLUE "Pasażer [%d]: Wchodzenie zostało zakończone, nie wchodzę.\n", getpid());
+                    exit(0);
+                }
+
                 if (*ship_full_flag == 1) 
                 {
                     printf(LIGHTBLUE "Pasażer [%d]: Statek jest pełny! Nie wchodzę na kładkę.\n", getpid());
@@ -79,15 +109,33 @@ int main()
 
                 semaphore_wait(sem_bridge, 0, 0);
                 printf(LIGHTBLUE "Pasażer [%d]: Jest na kładce.\n", getpid());
+
+                // Sprawdzenie flagi po wejściu na kładkę
+                if (*koniec_wchodzenia == 1) 
+                {
+                    printf(LIGHTBLUE "Pasażer [%d]: Wchodzenie zostało zakończone, schodzę z kładki.\n", getpid());
+                    semaphore_signal(sem_bridge, 0, 0);
+                    exit(0);
+                }
+
                 usleep(3000);
 
                 printf(LIGHTBLUE "Pasażer [%d]: Próbuje wejść na statek...\n", getpid());
+                if (*koniec_wchodzenia == 1) 
+                {
+                    printf(LIGHTBLUE "Pasażer [%d]: Wchodzenie zostało zakończone, schodzę z kładki.\n", getpid());
+                    semaphore_signal(sem_bridge, 0, 0);
+                    exit(0);
+                }
 
                 if (semctl(sem_ship, 0, GETVAL) > 0) 
                 {
                     semaphore_wait(sem_ship, 0, 0); 
                     semaphore_signal(sem_bridge, 0, 0);
                     printf(LIGHTBLUE "Pasażer [%d]: Jest na statku.\n", getpid());
+
+                    // zwiększam licznik pasazerow
+                    __sync_fetch_and_add(shared_counter, 1);
 
                     if (semctl(sem_ship, 0, GETVAL) == 0) 
                     {
@@ -103,8 +151,9 @@ int main()
                             break;
                         }
                     }
+                    
 
-                    pause(); // Oczekiwanie na sygnał od kapitana
+                    pause(); 
                 } 
                 else 
                 {
@@ -114,12 +163,6 @@ int main()
                 }
             }
             usleep(1000);
-        }
-
-        // Oczekiwanie na zakończenie procesów, które nie weszły na statek
-        for (int i = 0; i < MAX_ON_SHIP + 10 - MAX_ON_SHIP; i++) 
-        {
-            wait(NULL);
         }
 
         // Czekanie na sygnał powrotu statku
@@ -136,40 +179,41 @@ int main()
             {
                 semaphore_wait(sem_bridge, 0, 0);
                 printf(LIGHTBLUE "Pasażer [%d]: Schodzę ze statku...\n", pids_on_ship[i]);
+
+                // Zmniejszenie licznika pasażerów
+                __sync_fetch_and_sub(shared_counter, 1);
+
                 usleep(1000);
                 semaphore_signal(sem_bridge, 0, 0);
-                kill(pids_on_ship[i], SIGUSR1); // Sygnał dla procesu pasażera
-
-                // zerujemy w pamieci dla kapitana: pasazer nie jest juz na statku
+                kill(pids_on_ship[i], SIGUSR1); 
                 pids_on_ship[i] = 0; 
             }
         }
 
-        // Oczekiwanie na zakończenie procesów pasażerów
-        for (int i = 0; i < MAX_ON_SHIP; i++) 
-        {
-            wait(NULL);
-        }
-
         if(return_signal.content == 999)
         {
-            detach_shared_memory(ship_full_flag, shared_mem_id); 
-            delete_shared_memory(shared_mem_id);
             break;
         }
-        detach_shared_memory(ship_full_flag, shared_mem_id);
-        delete_shared_memory(shared_mem_id);
     }
 
     printf(RESET "\n=== Wszystkie rejsy zakończone ===\n");
 
-    // Usunięcie semaforów
+    detach_shared_memory(koniec_wchodzenia, shared_end_boarding_id);
+
     destroy_semaphores(sem_bridge);
     destroy_semaphores(sem_ship);
 
-    // Zwolnienie pamięci współdzielonej i odłączenie segmentów
     detach_shared_memory(pids_on_ship, shared_pid_mem_id);
     delete_shared_memory(shared_pid_mem_id);
+
+    // detach_shared_memory(shared_counter, shared_counter_id);
+    // delete_shared_memory(shared_counter_id);
+
+    detach_shared_memory(ship_full_flag, shared_mem_id); 
+    delete_shared_memory(shared_mem_id);
+
+    reaper_running = false;
+    pthread_join(reaper_tid, NULL);
 
     return 0;
 }
