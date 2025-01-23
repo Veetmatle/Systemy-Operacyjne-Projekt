@@ -53,6 +53,10 @@ int main()
         exit(1);
     }
 
+    // Inicjalizacja semafora do synchro
+    key_t key_synchro_proces = ftok(".", 'u');
+    int sem_synchro = initialize_semaphores(key_synchro_proces, 1);
+
     // Inicjalizacja pamięci współdzielonej dla licznika pasażerów
     int shared_counter_id = initialize_shared_memory(".", 'c', sizeof(int), IPC_CREAT | 0666);
     int *shared_counter = (int *)attach_shared_memory(shared_counter_id, NULL, 0);
@@ -261,7 +265,11 @@ int main()
     }
 
     // sleep antywyścigowy -> zapewnia odpowiednie zakańczanie się procesów, może dać tu semafora od pasażerów?
-    usleep(10000);
+    // usleep(10000);
+    semaphore_wait(sem_synchro, 0, 0); 
+    printf("DOSTAŁEM SEMAFOR ZE SIE ZAKONCZYLI KOM DO DEBUGOWANIAA\n");
+    destroy_semaphores(sem_synchro);
+
     detach_shared_memory(shared_counter, shared_counter_id);
     delete_shared_memory(shared_counter_id);
 

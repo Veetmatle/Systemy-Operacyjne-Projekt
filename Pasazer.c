@@ -24,8 +24,9 @@ int main()
     key_t key_ship = ftok(".", 's');   
     key_t key_msg_queue = ftok(".", 'k'); 
     key_t key_shared_pid = ftok(".", 'p'); 
+    key_t key_synchro_proces = ftok(".", 'u');
 
-    if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1 || key_shared_pid == -1) 
+    if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1 || key_shared_pid == -1 || key_synchro_proces == -1) 
     {
         perror("Błąd ftok");
         exit(1);
@@ -34,6 +35,8 @@ int main()
     // Inicjalizacja semaforów
     int sem_bridge = initialize_semaphores(key_bridge, 1);
     int sem_ship = initialize_semaphores(key_ship, 1);
+    int sem_synchro = initialize_semaphores(key_synchro_proces, 1);
+    semctl(sem_synchro, 0, SETVAL, 0);
 
     // Pamięć współdzielona do przechowywania PID-ów
     int shared_pid_mem_id = initialize_shared_memory(".", 'p', MAX_ON_SHIP * sizeof(pid_t), IPC_CREAT | 0666);
@@ -190,7 +193,7 @@ int main()
 
         if(return_signal.content == 999)
         {
-            break;
+            rejs = R - 1;
         }
     }
 
@@ -206,6 +209,8 @@ int main()
 
     detach_shared_memory(ship_full_flag, shared_mem_id); 
     delete_shared_memory(shared_mem_id);
+
+    semaphore_signal(sem_synchro, 0, 0); // semid, sem_num, flags
 
     reaper_running = false;
     pthread_join(reaper_tid, NULL);
