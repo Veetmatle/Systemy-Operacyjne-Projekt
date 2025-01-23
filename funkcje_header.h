@@ -41,7 +41,7 @@
 
 // statek i kładka
 #define MAX_ON_BRIDGE 5   
-#define MAX_ON_SHIP 30 
+#define MAX_ON_SHIP 30
 
 // kolorki
 #define LIGHTBLUE "\033[94m" 
@@ -53,6 +53,13 @@
 #define T1 600000      //0.5s      // Czas między odpłynięciami
 #define T2 10000 //0.01s            // Czas trwania rejsu
 #define R 15  
+
+struct shared_data 
+{
+    int total_passengers;      // całkowita liczba pasażerów
+    int passengers_left;       // liczba pozostałych pasażerów
+    volatile int is_finished;  // flaga zakończenia
+};
 
 // Struktura komunikatu
 struct message 

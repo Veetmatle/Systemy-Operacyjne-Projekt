@@ -65,7 +65,6 @@ int main()
         *ship_full_flag = 0;
         *shared_counter = 0;
 
-        // Ustawienie maksymalnych wartości semaforów
         semctl(sem_bridge, 0, SETVAL, MAX_ON_BRIDGE);
         semctl(sem_ship, 0, SETVAL, MAX_ON_SHIP);
 
@@ -110,7 +109,6 @@ int main()
                 semaphore_wait(sem_bridge, 0, 0);
                 printf(LIGHTBLUE "Pasażer [%d]: Jest na kładce.\n", getpid());
 
-                // Sprawdzenie flagi po wejściu na kładkę
                 if (*koniec_wchodzenia == 1) 
                 {
                     printf(LIGHTBLUE "Pasażer [%d]: Wchodzenie zostało zakończone, schodzę z kładki.\n", getpid());
@@ -118,7 +116,7 @@ int main()
                     exit(0);
                 }
 
-                usleep(3000);
+                // usleep(3000);
 
                 printf(LIGHTBLUE "Pasażer [%d]: Próbuje wejść na statek...\n", getpid());
                 if (*koniec_wchodzenia == 1) 
@@ -142,7 +140,7 @@ int main()
                         *ship_full_flag = 1;
                     }
 
-                    // Zapisanie PID pasażera do pamięci współdzielonej
+                    // PID pasażera do pamięci współdzielonej
                     for (int j = 0; j < MAX_ON_SHIP; j++) 
                     {
                         if (pids_on_ship[j] == 0) 
@@ -172,7 +170,7 @@ int main()
 
         printf(LIGHTBLUE "\nPasażerowie: Rozpoczynam schodzenie ze statku.\n");
 
-        // Schodzenie pasażerów
+        // Schodzenie pasażerów NIE działa bez sleepa-> raz działa raz nie 
         for (int i = 0; i < MAX_ON_SHIP; i++) 
         {
             if (pids_on_ship[i] > 0) 
@@ -205,9 +203,6 @@ int main()
 
     detach_shared_memory(pids_on_ship, shared_pid_mem_id);
     delete_shared_memory(shared_pid_mem_id);
-
-    // detach_shared_memory(shared_counter, shared_counter_id);
-    // delete_shared_memory(shared_counter_id);
 
     detach_shared_memory(ship_full_flag, shared_mem_id); 
     delete_shared_memory(shared_mem_id);

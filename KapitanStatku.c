@@ -1,10 +1,9 @@
 #include "funkcje_header.h"
 
-// Struktura do przekazania argumentów do wątku
 struct timer_args 
 {
     int time_limit;        // Czas w mikrosekundach
-    volatile bool *timer_finished;  // Flaga informująca o zakończeniu odliczania
+    volatile bool *timer_finished;  
 };
 
 void* timer_thread(void* arg) 
@@ -12,19 +11,18 @@ void* timer_thread(void* arg)
     struct timer_args *args = (struct timer_args*)arg;
     int elapsed_time = 0; 
 
-    // Timer z interwałami co 100 ms, aby umożliwić kontrolę flagi
+    // Timer co 100 ms do kontroli flagi
     while (elapsed_time < args->time_limit) 
     {
         if (*(args->timer_finished)) 
         {
-            // Jeśli timer został wcześniej ustawiony jako zakończony, przerywamy
             return NULL;
         }
         usleep(100000); // 100 ms
         elapsed_time += 100000;
     }
 
-    *(args->timer_finished) = true; // Zakończ timer
+    *(args->timer_finished) = true; 
     return NULL;
 }
 
@@ -48,7 +46,6 @@ int main()
     signal(SIGUSR1, handle_early_departure);  
     signal(SIGUSR2, handle_end_of_cruises);  
 
-    // Dostęp do semaforów (2 sztuki):
     int sem_id = semget(ftok(".", 'F'), 2, 0666);
     if (sem_id == -1) 
     {
@@ -76,7 +73,6 @@ int main()
             signal_to_passengers.content = 1; // "zezwalam"
             
             printf(GREEN "KapitanStatku: Przygotowuję statek do wsiadania pasażerów...\n");
-            usleep(3000); 
 
             printf(GREEN "KapitanStatku: Wysyłam sygnał do pasażerów: Można wchodzić na statek.\n");
             send_message_to_queue(message_queue_ID, &signal_to_passengers, 0);
@@ -129,9 +125,8 @@ int main()
 
         pthread_join(timer_tid, NULL);
 
-        // Chwila dla tych co są na kładce żeby zleźli + reset wczesniejszego odplywania
+        // reset wczesniejszego odplywania
         wczesniejsze_odplywanie = 0; 
-        usleep(100000); // 0.1 sek
 
         // Informuje KapitanaPortu (kolejką) o tym, że pasażerowie są na pokładzie
         struct message first_signal_to_port;
@@ -140,7 +135,7 @@ int main()
         printf(GREEN "KapitanStatku: Informacja dla portu, pasażerowie weszli na statek!\n");
         send_message_to_queue(message_queue_ID, &first_signal_to_port, 0);
 
-        // Czekam Port „przetworzy” (decyzja o przerwaniu/nieprzerwaniu) -> SEM_PORT_PROCESSED
+        // Czekam az port to przetrawi
         semaphore_wait(sem_id, SEM_PORT_PROCESSED, 0);
 
         // Jezeli przerwanie to
@@ -177,10 +172,9 @@ int main()
         printf("KapitanStatku: Sygnalizuję odpłynięcie (SEM_SHIP_DEPARTED)\n");
         semaphore_signal(sem_id, SEM_SHIP_DEPARTED, 0);
 
-        // Czekam, aż port zakończy przetwarzanie tego etapu
         semaphore_wait(sem_id, SEM_PORT_PROCESSED, 0);
 
-        // Jeszcze raz sprawdzam sygnał przerwania (np. w trakcie rejsu)
+        // Jeszcze raz sprawdzam sygnał przerwania (w trakcie rejsu juz)
         if(koniec_rejsow == 1)
         {
             rejs = R - 1; 
@@ -210,7 +204,6 @@ int main()
             return_signal.content = 1;
             printf(GREEN "KapitanStatku: Wysłano sygnał do pasażerów: Statek wrócił do portu.\nCzekam, aż wszyscy pasażerowie zejdą...\n");
             send_message_to_queue(message_queue_ID, &return_signal, 0);
-
         }
         
         while (1)
@@ -228,7 +221,6 @@ int main()
         {
             *koniec_wchodzenia = 0;
 
-            // Zezwolenie dla pasażerów na wsiadanie
             struct message signal_to_passengers;
             signal_to_passengers.type = MSG_TYPE_PERMISSION; 
             signal_to_passengers.content = 1;              
@@ -248,7 +240,7 @@ int main()
             receive_message_queue_antyprzerwanie(message_queue_ID, MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE, &captain_can_leave);
             printf(GREEN "KapitanStatku: Otrzymano sygnał, że statek gotowy do rejsu.\n");
 
-            // Sprawdzam, czy nie było sygnału SIGUSR1 (wcześniejsze wypłynięcie) lub SIGUSR2
+            // Sprawdzam, czy nie było sygnału SIGUSR1 (wcześniejsze wypłynięcie)
             if(wczesniejsze_odplywanie == 1)
             {
                 printf(GREEN "KapitanStatku: Otrzymano sygnał wcześniejszego wypłynięcia (SIGUSR1).\n");
@@ -268,6 +260,8 @@ int main()
         }
     }
 
+    // sleep antywyścigowy -> zapewnia odpowiednie zakańczanie się procesów, może dać tu semafora od pasażerów?
+    usleep(10000);
     detach_shared_memory(shared_counter, shared_counter_id);
     delete_shared_memory(shared_counter_id);
 
