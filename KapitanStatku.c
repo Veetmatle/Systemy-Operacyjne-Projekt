@@ -124,7 +124,7 @@ int main()
                 }
                 break;
             }
-            usleep(50000); // 0.05 sek przerwy
+            // usleep(50000); // 0.05 sek przerwy
         }
 
         pthread_join(timer_tid, NULL);
@@ -160,7 +160,7 @@ int main()
                     printf(GREEN "KapitanStatku: Wszyscy pasażerowie zeszli ze statku.\n");
                     break;
                 }
-                usleep(50000);
+                // usleep(50000);
             }
 
             delete_message_queue(message_queue_ID);
@@ -170,7 +170,7 @@ int main()
 
         // Jeżeli rejs ma się odbyć:
         printf(GREEN "KapitanStatku: Wsiadanie zakończone. Odpływam za 10 sekund...\n");
-        usleep(10000);
+        // usleep(10000);
 
         printf(GREEN "KapitanStatku: Statek odpływa...\n");
         printf("KapitanStatku: Sygnalizuję odpłynięcie (SEM_SHIP_DEPARTED)\n");
@@ -217,7 +217,7 @@ int main()
                     printf(GREEN "KapitanStatku: Wszyscy pasażerowie zeszli ze statku.\n");
                     break;
                 }
-            usleep(50000); 
+            // usleep(50000); 
         }
 
         // Jeżeli to nie był ostatni rejs – kolejny załadunek
@@ -264,8 +264,6 @@ int main()
         }
     }
 
-    // sleep antywyścigowy -> zapewnia odpowiednie zakańczanie się procesów, może dać tu semafora od pasażerów?
-    // usleep(10000);
     semaphore_wait(sem_synchro, 0, 0); 
     printf("DOSTAŁEM SEMAFOR ZE SIE ZAKONCZYLI KOM DO DEBUGOWANIAA\n");
     destroy_semaphores(sem_synchro);
