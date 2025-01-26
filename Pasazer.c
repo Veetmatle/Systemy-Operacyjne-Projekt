@@ -106,7 +106,7 @@ int main()
         printf(LIGHTBLUE "Pasażerowie: Otrzymali sygnał i rozpoczynają wsiadanie...\n");
 
         // ------------------- TWORZENIE PASAŻERÓW -------------------
-        for (int i = 0; i < MAX_ON_SHIP + 10; i++) 
+        for (int i = 0; i < PASSENGERS; i++) 
         {
             if (*koniec_wchodzenia == 1) 
             {

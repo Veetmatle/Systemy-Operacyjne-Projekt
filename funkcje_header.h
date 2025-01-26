@@ -42,6 +42,7 @@
 // statek i kładka
 #define MAX_ON_BRIDGE 5   
 #define MAX_ON_SHIP 40
+#define PASSENGERS 50
 
 // kolorki
 #define LIGHTBLUE "\033[94m" 
