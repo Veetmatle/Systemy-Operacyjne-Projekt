@@ -41,7 +41,7 @@
 
 // statek i kładka
 #define MAX_ON_BRIDGE 5   
-#define MAX_ON_SHIP 30
+#define MAX_ON_SHIP 40
 
 // kolorki
 #define LIGHTBLUE "\033[94m" 
@@ -50,9 +50,9 @@
 #define RESET   "\033[0m"     
 
 // rzeczy do rejsow
-#define T1 600000      //0.5s      // Czas między odpłynięciami
-#define T2 10000 //0.01s            // Czas trwania rejsu
-#define R 15  
+#define T1 6000000      //?6s      // Czas między odpłynięciami
+#define T2 1000000 //1s            // Czas trwania rejsu
+#define R 10  
 
 struct shared_data 
 {

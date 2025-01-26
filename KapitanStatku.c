@@ -42,10 +42,20 @@ void handle_end_of_cruises(int sig)
 
 int main() 
 {
+    // sprawdzenie czy kładka i statek mają sensowne wartości
+    if (MAX_ON_BRIDGE <= 0 || MAX_ON_SHIP <= 0)
+    {
+        printf(GREEN "KapitanStatku: Chwila, chwila... Pojemność kładki (%d) lub statku (%d) wynosi 0 lub jest ujemna.\n", 
+               MAX_ON_BRIDGE, MAX_ON_SHIP);
+        printf(GREEN "KapitanStatku: Nie będę pływał za darmo, nie jestem Matka Teresa.\n" RESET);
+        return 1; 
+    }
+
     int message_queue_ID = initialize_message_queue(".", 'k', 0666 | IPC_CREAT);
     signal(SIGUSR1, handle_early_departure);  
     signal(SIGUSR2, handle_end_of_cruises);  
 
+    // semafory kapitańskie
     int sem_id = semget(ftok(".", 'F'), 2, 0666);
     if (sem_id == -1) 
     {
@@ -77,6 +87,7 @@ int main()
             signal_to_passengers.content = 1; // "zezwalam"
             
             printf(GREEN "KapitanStatku: Przygotowuję statek do wsiadania pasażerów...\n");
+            usleep(10000); 
 
             printf(GREEN "KapitanStatku: Wysyłam sygnał do pasażerów: Można wchodzić na statek.\n");
             send_message_to_queue(message_queue_ID, &signal_to_passengers, 0);
@@ -124,7 +135,7 @@ int main()
                 }
                 break;
             }
-            // usleep(50000); // 0.05 sek przerwy
+            usleep(50000); // 0.05 sek przerwy
         }
 
         pthread_join(timer_tid, NULL);
@@ -148,6 +159,8 @@ int main()
             printf(GREEN "KapitanStatku: Rejs się nie odbędzie. Proszę wyjść.\n");
             printf(GREEN "KapitanStatku: Czekam, aż wszyscy pasażerowie zejdą...\n");
 
+            usleep(10000);
+
             struct message return_signal;
             return_signal.type = MSG_TYPE_RETURNED;
             return_signal.content = 999;
@@ -170,7 +183,7 @@ int main()
 
         // Jeżeli rejs ma się odbyć:
         printf(GREEN "KapitanStatku: Wsiadanie zakończone. Odpływam za 10 sekund...\n");
-        // usleep(10000);
+        usleep(10000);
 
         printf(GREEN "KapitanStatku: Statek odpływa...\n");
         printf("KapitanStatku: Sygnalizuję odpłynięcie (SEM_SHIP_DEPARTED)\n");
@@ -189,7 +202,7 @@ int main()
         for (int i = 0; i < 10; i++) 
         {
             printf(RESET "KapitanStatku: Statek w drodze... %d sekund\n", i + 1);
-            usleep(1000);
+            usleep(100000);
         }
         printf(GREEN "\nKapitanStatku: Statek zakończył rejs.\n");
 
@@ -207,6 +220,7 @@ int main()
             return_signal.type = MSG_TYPE_RETURNED;
             return_signal.content = 1;
             printf(GREEN "KapitanStatku: Wysłano sygnał do pasażerów: Statek wrócił do portu.\nCzekam, aż wszyscy pasażerowie zejdą...\n");
+            usleep(10000);
             send_message_to_queue(message_queue_ID, &return_signal, 0);
         }
         
@@ -217,7 +231,7 @@ int main()
                     printf(GREEN "KapitanStatku: Wszyscy pasażerowie zeszli ze statku.\n");
                     break;
                 }
-            // usleep(50000); 
+            usleep(5000); 
         }
 
         // Jeżeli to nie był ostatni rejs – kolejny załadunek
@@ -229,6 +243,7 @@ int main()
             signal_to_passengers.type = MSG_TYPE_PERMISSION; 
             signal_to_passengers.content = 1;              
             printf(GREEN "KapitanStatku: Wysyłam sygnał do pasażerów: Można wchodzić na statek.\n");
+            usleep(10000);
             send_message_to_queue(message_queue_ID, &signal_to_passengers, 0);
 
             // Info do KapitanaPortu, że statek jest gotowy do kolejnego rejsu

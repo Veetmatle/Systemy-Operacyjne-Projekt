@@ -1,12 +1,13 @@
 #include "funkcje_header.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
-#include <signal.h> 
 
 int main() 
 {
+    // sprawdzenie czy kładka i statek mają sensowne wartości
+    if (MAX_ON_BRIDGE <= 0 || MAX_ON_SHIP <= 0)
+    {
+        return 1; 
+    }
+
     clear_existing_semaphores(".", 'F');
     clear_existing_message_queue(".", 'k');
 

@@ -14,6 +14,12 @@ void* reaper_thread(void* arg)
 
 int main() 
 {
+    // sprawdzenie czy kładka i statek mają sensowne wartości
+    if (MAX_ON_BRIDGE <= 0 || MAX_ON_SHIP <= 0)
+    {
+        return 1; 
+    }
+
     clear_existing_shared_memory(".", 'e');
     clear_existing_shared_memory(".", 'p');
     clear_existing_semaphores(".", 'b');
@@ -119,6 +125,7 @@ int main()
             {   
                 // ------------------- KOD PROCESU-PASAŻERA -------------------
                 printf(LIGHTBLUE "Pasażer [%d]: Próbuje wejść na kładkę...\n", getpid());
+                usleep(10000);
 
                 // Najpierw sprawdzam, czy nie zakończono wchodzenia
                 if (*koniec_wchodzenia == 1) 
@@ -184,17 +191,15 @@ int main()
                 semaphore_signal(sem_bridge, 0, 0);
 
                 printf(LIGHTBLUE "Pasażer [%d]: Jest już na statku.\n", getpid());
-
-                // Teraz pasażer czeka na sygnał (SIGUSR1) oznaczający zejście
                 pause(); 
                 // Po SIGUSR1 -> proces umiera
                 exit(0);
             }
 
-            // usleep(10000); 
+            usleep(1000); 
         }
 
-        // ============= Oczekiwanie na powrót statku (MSG_TYPE_RETURNED) =============
+        usleep(10000);
         struct message return_signal;
         printf(LIGHTBLUE "Pasażerowie: Czekam na sygnał od KapitanaStatku o powrocie...\n");
         receive_message_from_queue(message_queue_ID, &return_signal, MSG_TYPE_RETURNED, 0);
@@ -212,12 +217,13 @@ int main()
                 // Wejście do sekcji krytycznej (ochrona shared_counter i pids_on_ship)
                 semaphore_wait(sem_data, 0, 0);
 
-                    printf(LIGHTBLUE "Pasażer [%d]: Schodzi ze statku...\n", pids_on_ship[i]);
+                printf(LIGHTBLUE "Pasażer [%d]: Schodzi ze statku...\n", pids_on_ship[i]);
+                usleep(10000);
 
-                    __sync_fetch_and_sub(shared_counter, 1);
+                __sync_fetch_and_sub(shared_counter, 1);
 
-                    pid_t child_pid = pids_on_ship[i];
-                    pids_on_ship[i] = 0;
+                pid_t child_pid = pids_on_ship[i];
+                pids_on_ship[i] = 0;
 
                 semaphore_signal(sem_data, 0, 0);
                 semaphore_signal(sem_bridge, 0, 0);
