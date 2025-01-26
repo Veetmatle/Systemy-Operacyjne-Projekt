@@ -25,15 +25,10 @@
 #define MSG_TYPE_PERMISSION 1 // pakowanie sie na statek
 #define MSG_TYPE_RETURNED 10 // statek wrocil
 #define MSG_TYPE_PORT_READY 30 // port gotowy do obslugi przez KP (losowanie decyzji) 
-#define MSG_TYPE_NORMAL_DEPARTURE 50 // wiadomosc o normalnym odplywaniu od KP
-#define MSG_TYPE_END_OF_OPERATION 40 // wiadomosc do kapitana portu zeby przerwal obsluge portu
-#define MSG_TYPE_PORT 55 //wiadomosc do kapitana portu zeby zaczal zarzadzac portem
-#define MSG_TYPE_EARLY_DEPARTURE 99 // wiadomosc o wczesniejszym odplywaniu
-#define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE 222 // sygnał do kapitana ze moze jechac (po signalu)
-#define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE2 221
+#define MSG_TYPE_PORT 55 //wiadomosc do kapitana portu ze statek szykuje sie do kolejnego rejsu
+#define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE 222 // sygnał do kapitana ze moze kontynuowac przygotowania to odplyniecia (po signalu szybsze odpłynięcie)
 #define MSG_TYPE_FIRST_PORT_SIGNAL 181 //sygnał do kapitana portu od kapitana statku z pidem ze moze losowac czy przerywac rejsy
-#define MSG_TYPE_END_OF_PORT 111 //sygnał od kapitana portu ze koniec rejsow
-#define MSG_TYPE_SECOND_PORT_SIGNAL 88 // druga wiadomosc do portu (tuz przed rejsem)
+
 
 // do semaforow kapitanow
 #define SEM_SHIP_DEPARTED 0
@@ -54,13 +49,6 @@
 #define T1 6000000      //?6s      // Czas między odpłynięciami
 #define T2 1000000 //1s            // Czas trwania rejsu
 #define R 10  
-
-struct shared_data 
-{
-    int total_passengers;      // całkowita liczba pasażerów
-    int passengers_left;       // liczba pozostałych pasażerów
-    volatile int is_finished;  // flaga zakończenia
-};
 
 // Struktura komunikatu
 struct message 

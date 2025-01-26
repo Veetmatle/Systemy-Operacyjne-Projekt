@@ -24,7 +24,6 @@ void semaphore_signal(int sem_id, int sem_num, int flags)
         {
             if (errno == EINTR) 
             {
-                // Operation was interrupted by a signal, retry
                 continue;
             }
             else 
@@ -50,7 +49,6 @@ void semaphore_wait(int sem_id, int sem_num, int flags)
         {
             if (errno == EINTR) 
             {
-                // Operation was interrupted by a signal, retry
                 continue;
             }
             else 

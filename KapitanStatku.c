@@ -18,7 +18,7 @@ void* timer_thread(void* arg)
         {
             return NULL;
         }
-        usleep(100000); // 100 ms
+        usleep(100000); 
         elapsed_time += 100000;
     }
 
@@ -135,7 +135,7 @@ int main()
                 }
                 break;
             }
-            usleep(50000); // 0.05 sek przerwy
+            usleep(50000); 
         }
 
         pthread_join(timer_tid, NULL);
@@ -143,7 +143,7 @@ int main()
         // reset wczesniejszego odplywania
         wczesniejsze_odplywanie = 0; 
 
-        // Informuje KapitanaPortu (kolejką) o tym, że pasażerowie są na pokładzie
+        // Informuje KapitanaPortu (kolejką) o tym, że pasażerowie są na pokładzie + wysyłam PID
         struct message first_signal_to_port;
         first_signal_to_port.type = MSG_TYPE_FIRST_PORT_SIGNAL;
         first_signal_to_port.content = getpid(); 
@@ -173,7 +173,7 @@ int main()
                     printf(GREEN "KapitanStatku: Wszyscy pasażerowie zeszli ze statku.\n");
                     break;
                 }
-                // usleep(50000);
+                usleep(50000);
             }
 
             delete_message_queue(message_queue_ID);
@@ -188,7 +188,6 @@ int main()
         printf(GREEN "KapitanStatku: Statek odpływa...\n");
         printf("KapitanStatku: Sygnalizuję odpłynięcie (SEM_SHIP_DEPARTED)\n");
         semaphore_signal(sem_id, SEM_SHIP_DEPARTED, 0);
-
         semaphore_wait(sem_id, SEM_PORT_PROCESSED, 0);
 
         // Jeszcze raz sprawdzam sygnał przerwania (w trakcie rejsu juz)
@@ -198,7 +197,7 @@ int main()
             printf(GREEN "KapitanStatku: Otrzymałem sygnał przerwania rejsów! Dokończę bieżący rejs i koniec...\n");
         }
 
-        // Symulacja rejsu (chwilwo 10 pseudo iteracjo sekund zeby nie bylo)
+        // Symulacja rejsu (chwilwo 10 pseudo iteracjo sekund)
         for (int i = 0; i < 10; i++) 
         {
             printf(RESET "KapitanStatku: Statek w drodze... %d sekund\n", i + 1);
