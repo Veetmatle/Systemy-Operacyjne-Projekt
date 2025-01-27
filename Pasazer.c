@@ -31,7 +31,7 @@ int main()
     key_t key_msg_queue    = ftok(".", 'k'); 
     key_t key_shared_pid   = ftok(".", 'p'); 
     key_t key_synchro_proc = ftok(".", 'u');
-    key_t key_data         = ftok(".", 'm');  // Dodatkowy semafor na dane
+    key_t key_data         = ftok(".", 'm');  
 
     if (key_bridge == -1 || key_ship == -1 || key_msg_queue == -1 
         || key_shared_pid == -1 || key_synchro_proc == -1 || key_data == -1) 
@@ -46,10 +46,10 @@ int main()
     int sem_synchro = initialize_semaphores(key_synchro_proc, 1); // Do synchronizacji czyszczarki
     int sem_data    = initialize_semaphores(key_data, 1);    // na dane
 
-    // Semafor synchro używany gdzieś dalej:
+    // Semafor synchro używany na koncu
     semctl(sem_synchro, 0, SETVAL, 0);
 
-    // Ustawiam wartość semafora mutex (do ochrony danych) na 1
+    // Ustawiam wartość do ochrony danych na 1
     semctl(sem_data, 0, SETVAL, 1);
 
     // 2) Pamięć współdzielona: PID-y pasażerów
@@ -247,7 +247,7 @@ int main()
     destroy_semaphores(sem_ship);
     destroy_semaphores(sem_data);
 
-    // Zwolnienie semafora synchro do czyszczary kapitana
+    // Zwolnienie semafora synchro do czyszczarki kapitana
     semaphore_signal(sem_synchro, 0, 0);
 
     reaper_running = false;

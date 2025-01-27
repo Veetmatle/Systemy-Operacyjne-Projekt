@@ -2,7 +2,8 @@
 
 struct timer_args 
 {
-    int time_limit;        // Czas w mikrosekundach
+    // Czas w mikrosekundach
+    int time_limit;   
     volatile bool *timer_finished;  
 };
 
@@ -11,13 +12,13 @@ void* timer_thread(void* arg)
     struct timer_args *args = (struct timer_args*)arg;
     int elapsed_time = 0; 
 
-    // Timer co 100 ms do kontroli flagi
     while (elapsed_time < args->time_limit) 
     {
         if (*(args->timer_finished)) 
         {
             return NULL;
         }
+        // usleep konieczny do zachowania logiki timera
         usleep(100000); 
         elapsed_time += 100000;
     }
@@ -26,8 +27,8 @@ void* timer_thread(void* arg)
     return NULL;
 }
 
-/* reszta inicjalizacji */
-int wczesniejsze_odplywanie = 0; // 0 - normalne 1 - szybsze
+// 0 - domyślne 1 - zmienione
+int wczesniejsze_odplywanie = 0; 
 int koniec_rejsow = 0;
 
 void handle_early_departure(int sig) 
@@ -42,7 +43,6 @@ void handle_end_of_cruises(int sig)
 
 int main() 
 {
-    // sprawdzenie czy kładka i statek mają sensowne wartości
     if (MAX_ON_BRIDGE <= 0 || MAX_ON_SHIP <= 0)
     {
         printf(GREEN "KapitanStatku: Chwila, chwila... Pojemność kładki (%d) lub statku (%d) wynosi 0 lub jest ujemna.\n", 
@@ -63,7 +63,7 @@ int main()
         exit(1);
     }
 
-    // Inicjalizacja semafora do synchro
+    // Inicjalizacja semafora do synchronizacji
     key_t key_synchro_proces = ftok(".", 'u');
     int sem_synchro = initialize_semaphores(key_synchro_proces, 1);
 
@@ -84,7 +84,7 @@ int main()
         {
             struct message signal_to_passengers;
             signal_to_passengers.type = MSG_TYPE_PERMISSION;
-            signal_to_passengers.content = 1; // "zezwalam"
+            signal_to_passengers.content = 1; 
             
             printf(GREEN "KapitanStatku: Przygotowuję statek do wsiadania pasażerów...\n");
             usleep(10000); 
@@ -197,11 +197,11 @@ int main()
             printf(GREEN "KapitanStatku: Otrzymałem sygnał przerwania rejsów! Dokończę bieżący rejs i koniec...\n");
         }
 
-        // Symulacja rejsu (chwilwo 10 pseudo iteracjo sekund)
-        for (int i = 0; i < 10; i++) 
+        // Symulacja rejsu
+        for (int i = 0; i < T2; i++) 
         {
             printf(RESET "KapitanStatku: Statek w drodze... %d sekund\n", i + 1);
-            usleep(100000);
+            usleep(USLEEP_W_PETLI_REJSU);
         }
         printf(GREEN "\nKapitanStatku: Statek zakończył rejs.\n");
 
@@ -279,7 +279,6 @@ int main()
     }
 
     semaphore_wait(sem_synchro, 0, 0); 
-    printf("DOSTAŁEM SEMAFOR ZE SIE ZAKONCZYLI KOM DO DEBUGOWANIAA\n");
     destroy_semaphores(sem_synchro);
 
     detach_shared_memory(shared_counter, shared_counter_id);

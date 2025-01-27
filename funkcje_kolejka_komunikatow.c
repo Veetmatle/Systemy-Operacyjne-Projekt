@@ -27,7 +27,6 @@ void send_message_to_queue(int mesg_queue_ID, struct message *msg_ptr, int msg_f
         {
             if (errno == EINTR) 
             {
-                // Wywołanie przerwane przez sygnał 
                 continue;
             }
             else 
@@ -98,7 +97,6 @@ int receive_message_queue_antyprzerwanie(int msq_ID, long msgtype, struct messag
         {
             if (errno == EINTR) 
             {
-                // Przerwane przez sygnał 
                 continue;
             } else if (errno == ENOMSG) 
             {

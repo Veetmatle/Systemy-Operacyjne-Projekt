@@ -22,12 +22,12 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define MSG_TYPE_PERMISSION 1 // pakowanie sie na statek
-#define MSG_TYPE_RETURNED 10 // statek wrocil
-#define MSG_TYPE_PORT_READY 30 // port gotowy do obslugi przez KP (losowanie decyzji) 
-#define MSG_TYPE_PORT 55 //wiadomosc do kapitana portu ze statek szykuje sie do kolejnego rejsu
-#define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE 222 // sygnał do kapitana ze moze kontynuowac przygotowania to odplyniecia (po signalu szybsze odpłynięcie)
-#define MSG_TYPE_FIRST_PORT_SIGNAL 181 //sygnał do kapitana portu od kapitana statku z pidem ze moze losowac czy przerywac rejsy
+#define MSG_TYPE_PERMISSION 1                           // pakowanie się pasażerów na statek
+#define MSG_TYPE_RETURNED 10                            // statek wrocił
+#define MSG_TYPE_PORT_READY 30                          // port gotowy do obslugi 
+#define MSG_TYPE_PORT 55                                // wiadomosc do kapitana portu ze statek szykuje sie do kolejnego rejsu
+#define MSG_TYPE_SIGNAL_TO_CAPTAIN_YOU_CAN_LEAVE 222    // sygnał do kapitana ze moze kontynuowac przygotowania to odplyniecia (po signalu szybsze odpłynięcie)
+#define MSG_TYPE_FIRST_PORT_SIGNAL 181                  // sygnał do kapitana portu od kapitana statku z pidem ze moze losowac czy przerywac rejsy
 
 
 // do semaforow kapitanow
@@ -37,18 +37,19 @@
 // statek i kładka
 #define MAX_ON_BRIDGE 5   
 #define MAX_ON_SHIP 40
-#define PASSENGERS 50
+#define PASSENGERS 50    
+
+// rzeczy do rejsow
+#define T1 6000000                  // w mikrosekundach
+#define T2 15                       // w sekundach
+#define R 15                        // liczba rejsów
+#define USLEEP_W_PETLI_REJSU 100000 // obecnie 0.1s w celu "przyspieszenia" rejsu 
 
 // kolorki
 #define LIGHTBLUE "\033[94m" 
 #define GREEN   "\033[32m"    
 #define RED     "\033[31m"    
-#define RESET   "\033[0m"     
-
-// rzeczy do rejsow
-#define T1 6000000      //?6s      // Czas między odpłynięciami
-#define T2 1000000 //1s            // Czas trwania rejsu
-#define R 10  
+#define RESET   "\033[0m" 
 
 // Struktura komunikatu
 struct message 

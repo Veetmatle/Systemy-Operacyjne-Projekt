@@ -2,7 +2,6 @@
 
 int main() 
 {
-    // sprawdzenie czy kładka i statek mają sensowne wartości
     if (MAX_ON_BRIDGE <= 0 || MAX_ON_SHIP <= 0)
     {
         return 1; 
@@ -40,7 +39,7 @@ int main()
             break; 
         }
 
-        // Tutaj obsługa wysłania kolejnego sygnału o zakonczeniu rejsow - tym razem w petli juz
+        // Tutaj obsługa wysłania kolejnego sygnału o zakonczeniu rejsow 
         printf(RED "KapitanPortu: Oczekuję na odpłynięcie statku (SEM_SHIP_DEPARTED)\n");
         semaphore_wait(sem_id, SEM_SHIP_DEPARTED, 0);
 
@@ -59,7 +58,7 @@ int main()
             break; 
         }
     
-        // Jeśli to nie ostatni rejs  to kolejny załadunek (czy wyplywa szybcieh)
+        // Jeśli to nie ostatni rejs  to kolejny załadunek (czy wyplywa szybciej)
         if (rejs != R - 1)
         {
             struct message received_signal;
